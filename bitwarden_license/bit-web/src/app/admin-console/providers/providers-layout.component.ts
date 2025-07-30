@@ -8,29 +8,22 @@ import { takeUntil } from "rxjs/operators";
 
 import { JslibModule } from "@bitwarden/angular/jslib.module";
 import { ProviderService } from "@bitwarden/common/admin-console/abstractions/provider.service";
-import { ProviderStatusType } from "@bitwarden/common/admin-console/enums";
+import { ProviderStatusType, ProviderType } from "@bitwarden/common/admin-console/enums";
 import { Provider } from "@bitwarden/common/admin-console/models/domain/provider";
 import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
-import { BannerModule, IconModule, LinkModule } from "@bitwarden/components";
+import { Icon, IconModule } from "@bitwarden/components";
+import { BusinessUnitPortalLogo } from "@bitwarden/web-vault/app/admin-console/icons/business-unit-portal-logo.icon";
 import { ProviderPortalLogo } from "@bitwarden/web-vault/app/admin-console/icons/provider-portal-logo";
 import { WebLayoutModule } from "@bitwarden/web-vault/app/layouts/web-layout.module";
 
-import { ProviderClientVaultPrivacyBannerService } from "./services/provider-client-vault-privacy-banner.service";
+import { ProviderWarningsService } from "../../billing/providers/services/provider-warnings.service";
 
 @Component({
   selector: "providers-layout",
   templateUrl: "providers-layout.component.html",
-  standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    JslibModule,
-    WebLayoutModule,
-    IconModule,
-    LinkModule,
-    BannerModule,
-  ],
+  imports: [CommonModule, RouterModule, JslibModule, WebLayoutModule, IconModule],
+  providers: [ProviderWarningsService],
 })
 export class ProvidersLayoutComponent implements OnInit, OnDestroy {
   protected readonly logo = ProviderPortalLogo;
@@ -38,38 +31,73 @@ export class ProvidersLayoutComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   protected provider$: Observable<Provider>;
 
+  protected logo$: Observable<Icon>;
+
   protected isBillable: Observable<boolean>;
   protected canAccessBilling$: Observable<boolean>;
 
-  protected showProviderClientVaultPrivacyWarningBanner$ = this.configService.getFeatureFlag$(
-    FeatureFlag.ProviderClientVaultPrivacyBanner,
-  );
+  protected clientsTranslationKey$: Observable<string>;
+  protected managePaymentDetailsOutsideCheckout$: Observable<boolean>;
+  protected providerPortalTakeover$: Observable<boolean>;
 
   constructor(
     private route: ActivatedRoute,
     private providerService: ProviderService,
     private configService: ConfigService,
-    protected providerClientVaultPrivacyBannerService: ProviderClientVaultPrivacyBannerService,
+    private providerWarningsService: ProviderWarningsService,
   ) {}
 
   ngOnInit() {
     document.body.classList.remove("layout_frontend");
 
-    this.provider$ = this.route.params.pipe(
-      switchMap((params) => this.providerService.get$(params.providerId)),
+    const providerId$: Observable<string> = this.route.params.pipe(
+      map((params) => params.providerId),
+    );
+
+    this.provider$ = providerId$.pipe(
+      switchMap((providerId) => this.providerService.get$(providerId)),
       takeUntil(this.destroy$),
+    );
+
+    this.logo$ = this.provider$.pipe(
+      map((provider) =>
+        provider.providerType === ProviderType.BusinessUnit
+          ? BusinessUnitPortalLogo
+          : ProviderPortalLogo,
+      ),
     );
 
     this.isBillable = this.provider$.pipe(
       map((provider) => provider?.providerStatus === ProviderStatusType.Billable),
-      takeUntil(this.destroy$),
     );
 
     this.canAccessBilling$ = combineLatest([this.isBillable, this.provider$]).pipe(
       map(
         ([hasConsolidatedBilling, provider]) => hasConsolidatedBilling && provider.isProviderAdmin,
       ),
-      takeUntil(this.destroy$),
+    );
+
+    this.clientsTranslationKey$ = this.provider$.pipe(
+      map((provider) =>
+        provider.providerType === ProviderType.BusinessUnit ? "businessUnits" : "clients",
+      ),
+    );
+
+    this.managePaymentDetailsOutsideCheckout$ = this.configService.getFeatureFlag$(
+      FeatureFlag.PM21881_ManagePaymentDetailsOutsideCheckout,
+    );
+
+    providerId$
+      .pipe(
+        switchMap((providerId) =>
+          this.providerWarningsService.showProviderSuspendedDialog$(providerId),
+        ),
+        takeUntil(this.destroy$),
+      )
+      .subscribe();
+
+    this.providerPortalTakeover$ = this.configService.getFeatureFlag$(
+      FeatureFlag.PM21821_ProviderPortalTakeover,
     );
   }
 

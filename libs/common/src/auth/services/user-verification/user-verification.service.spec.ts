@@ -1,25 +1,32 @@
 import { mock } from "jest-mock-extended";
 import { of } from "rxjs";
 
+// This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
+// eslint-disable-next-line no-restricted-imports
 import {
   PinLockType,
   PinServiceAbstraction,
   UserDecryptionOptions,
   UserDecryptionOptionsServiceAbstraction,
 } from "@bitwarden/auth/common";
-import { KdfConfig, KeyService } from "@bitwarden/key-management";
+// This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
+// eslint-disable-next-line no-restricted-imports
+import {
+  BiometricsService,
+  BiometricsStatus,
+  KdfConfig,
+  KeyService,
+  KdfConfigService,
+} from "@bitwarden/key-management";
 
-import { KdfConfigService } from "../../../../../key-management/src/abstractions/kdf-config.service";
 import { FakeAccountService, mockAccountServiceWith } from "../../../../spec";
-import { VaultTimeoutSettingsService } from "../../../abstractions/vault-timeout/vault-timeout-settings.service";
+import { InternalMasterPasswordServiceAbstraction } from "../../../key-management/master-password/abstractions/master-password.service.abstraction";
+import { VaultTimeoutSettingsService } from "../../../key-management/vault-timeout";
 import { I18nService } from "../../../platform/abstractions/i18n.service";
-import { LogService } from "../../../platform/abstractions/log.service";
-import { PlatformUtilsService } from "../../../platform/abstractions/platform-utils.service";
 import { HashPurpose } from "../../../platform/enums";
 import { Utils } from "../../../platform/misc/utils";
 import { UserId } from "../../../types/guid";
 import { MasterKey } from "../../../types/key";
-import { InternalMasterPasswordServiceAbstraction } from "../../abstractions/master-password.service.abstraction";
 import { UserVerificationApiServiceAbstraction } from "../../abstractions/user-verification/user-verification-api.service.abstraction";
 import { VerificationType } from "../../enums/verification-type";
 import { MasterPasswordPolicyResponse } from "../../models/response/master-password-policy.response";
@@ -36,10 +43,9 @@ describe("UserVerificationService", () => {
   const userVerificationApiService = mock<UserVerificationApiServiceAbstraction>();
   const userDecryptionOptionsService = mock<UserDecryptionOptionsServiceAbstraction>();
   const pinService = mock<PinServiceAbstraction>();
-  const logService = mock<LogService>();
   const vaultTimeoutSettingsService = mock<VaultTimeoutSettingsService>();
-  const platformUtilsService = mock<PlatformUtilsService>();
   const kdfConfigService = mock<KdfConfigService>();
+  const biometricsService = mock<BiometricsService>();
 
   const mockUserId = Utils.newGuid() as UserId;
   let accountService: FakeAccountService;
@@ -56,10 +62,8 @@ describe("UserVerificationService", () => {
       userVerificationApiService,
       userDecryptionOptionsService,
       pinService,
-      logService,
-      vaultTimeoutSettingsService,
-      platformUtilsService,
       kdfConfigService,
+      biometricsService,
     );
   });
 
@@ -113,26 +117,15 @@ describe("UserVerificationService", () => {
       );
 
       test.each([
-        [true, true, true, true],
-        [true, true, true, false],
-        [true, true, false, false],
-        [false, true, false, true],
-        [false, false, false, false],
-        [false, false, true, false],
-        [false, false, false, true],
+        [true, BiometricsStatus.Available],
+        [false, BiometricsStatus.DesktopDisconnected],
+        [false, BiometricsStatus.HardwareUnavailable],
       ])(
         "returns %s for biometrics availability when isBiometricLockSet is %s, hasUserKeyStored is %s, and supportsSecureStorage is %s",
-        async (
-          expectedReturn: boolean,
-          isBiometricsLockSet: boolean,
-          isBiometricsUserKeyStored: boolean,
-          platformSupportSecureStorage: boolean,
-        ) => {
+        async (expectedReturn: boolean, biometricsStatus: BiometricsStatus) => {
           setMasterPasswordAvailability(false);
           setPinAvailability("DISABLED");
-          vaultTimeoutSettingsService.isBiometricLockSet.mockResolvedValue(isBiometricsLockSet);
-          keyService.hasUserKeyStored.mockResolvedValue(isBiometricsUserKeyStored);
-          platformUtilsService.supportsSecureStorage.mockReturnValue(platformSupportSecureStorage);
+          biometricsService.getBiometricsStatus.mockResolvedValue(biometricsStatus);
 
           const result = await sut.getAvailableVerificationOptions("client");
 
@@ -235,6 +228,8 @@ describe("UserVerificationService", () => {
         expect(result).toEqual({
           policyOptions: null,
           masterKey: "masterKey",
+          kdfConfig: "kdfConfig",
+          email: "email",
         });
       });
 
@@ -293,6 +288,8 @@ describe("UserVerificationService", () => {
         expect(result).toEqual({
           policyOptions: "MasterPasswordPolicyOptions",
           masterKey: "masterKey",
+          kdfConfig: "kdfConfig",
+          email: "email",
         });
       });
 

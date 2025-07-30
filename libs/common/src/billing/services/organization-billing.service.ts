@@ -1,18 +1,12 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import {
-  BillingApiServiceAbstraction,
-  OrganizationBillingServiceAbstraction,
-  OrganizationInformation,
-  PaymentInformation,
-  PlanInformation,
-  SubscriptionInformation,
-} from "@bitwarden/common/billing/abstractions";
-import { BillingSourceResponse } from "@bitwarden/common/billing/models/response/billing.response";
-import { PaymentSourceResponse } from "@bitwarden/common/billing/models/response/payment-source.response";
+import { Observable, of, switchMap } from "rxjs";
+
+import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
 import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
-import { SyncService } from "@bitwarden/common/platform/sync";
+// This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
+// eslint-disable-next-line no-restricted-imports
 import { KeyService } from "@bitwarden/key-management";
 
 import { ApiService } from "../../abstractions/api.service";
@@ -20,12 +14,22 @@ import { OrganizationApiServiceAbstraction as OrganizationApiService } from "../
 import { OrganizationCreateRequest } from "../../admin-console/models/request/organization-create.request";
 import { OrganizationKeysRequest } from "../../admin-console/models/request/organization-keys.request";
 import { OrganizationResponse } from "../../admin-console/models/response/organization.response";
-import { EncryptService } from "../../platform/abstractions/encrypt.service";
+import { EncryptService } from "../../key-management/crypto/abstractions/encrypt.service";
+import { EncString } from "../../key-management/crypto/models/enc-string";
 import { I18nService } from "../../platform/abstractions/i18n.service";
-import { EncString } from "../../platform/models/domain/enc-string";
+import { SyncService } from "../../platform/sync";
 import { OrgKey } from "../../types/key";
-import { PlanType } from "../enums";
+import {
+  BillingApiServiceAbstraction,
+  OrganizationBillingServiceAbstraction,
+  OrganizationInformation,
+  PaymentInformation,
+  PlanInformation,
+  SubscriptionInformation,
+} from "../abstractions";
+import { PlanType, ProductTierType } from "../enums";
 import { OrganizationNoPaymentMethodCreateRequest } from "../models/request/organization-no-payment-method-create-request";
+import { PaymentSourceResponse } from "../models/response/payment-source.response";
 
 interface OrganizationKeys {
   encryptedKey: EncString;
@@ -38,29 +42,17 @@ export class OrganizationBillingService implements OrganizationBillingServiceAbs
   constructor(
     private apiService: ApiService,
     private billingApiService: BillingApiServiceAbstraction,
-    private configService: ConfigService,
     private keyService: KeyService,
     private encryptService: EncryptService,
     private i18nService: I18nService,
     private organizationApiService: OrganizationApiService,
     private syncService: SyncService,
+    private configService: ConfigService,
   ) {}
 
-  async getPaymentSource(
-    organizationId: string,
-  ): Promise<BillingSourceResponse | PaymentSourceResponse> {
-    const deprecateStripeSourcesAPI = await this.configService.getFeatureFlag(
-      FeatureFlag.AC2476_DeprecateStripeSourcesAPI,
-    );
-
-    if (deprecateStripeSourcesAPI) {
-      const paymentMethod =
-        await this.billingApiService.getOrganizationPaymentMethod(organizationId);
-      return paymentMethod.paymentSource;
-    } else {
-      const billing = await this.organizationApiService.getBilling(organizationId);
-      return billing.paymentSource;
-    }
+  async getPaymentSource(organizationId: string): Promise<PaymentSourceResponse> {
+    const paymentMethod = await this.billingApiService.getOrganizationPaymentMethod(organizationId);
+    return paymentMethod.paymentSource;
   }
 
   async purchaseSubscription(subscription: SubscriptionInformation): Promise<OrganizationResponse> {
@@ -130,7 +122,7 @@ export class OrganizationBillingService implements OrganizationBillingServiceAbs
   private async makeOrganizationKeys(): Promise<OrganizationKeys> {
     const [encryptedKey, key] = await this.keyService.makeOrgKey<OrgKey>();
     const [publicKey, encryptedPrivateKey] = await this.keyService.makeKeyPair(key);
-    const encryptedCollectionName = await this.encryptService.encrypt(
+    const encryptedCollectionName = await this.encryptService.encryptString(
       this.i18nService.t("defaultCollection"),
       key,
     );
@@ -184,6 +176,7 @@ export class OrganizationBillingService implements OrganizationBillingServiceAbs
     const [paymentToken, paymentMethodType] = information.paymentMethod;
     request.paymentToken = paymentToken;
     request.paymentMethodType = paymentMethodType;
+    request.skipTrial = information.skipTrial;
 
     const billingInformation = information.billing;
     request.billingAddressPostalCode = billingInformation.postalCode;
@@ -222,5 +215,43 @@ export class OrganizationBillingService implements OrganizationBillingServiceAbs
     if (information.storage) {
       request.additionalStorageGb = information.storage;
     }
+  }
+
+  async restartSubscription(
+    organizationId: string,
+    subscription: SubscriptionInformation,
+  ): Promise<void> {
+    const request = new OrganizationCreateRequest();
+    const organizationKeys = await this.makeOrganizationKeys();
+    this.setOrganizationKeys(request, organizationKeys);
+    this.setOrganizationInformation(request, subscription.organization);
+    this.setPlanInformation(request, subscription.plan);
+    this.setPaymentInformation(request, subscription.payment);
+    await this.billingApiService.restartSubscription(organizationId, request);
+  }
+
+  isBreadcrumbingPoliciesEnabled$(organization: Organization): Observable<boolean> {
+    if (organization === null || organization === undefined) {
+      return of(false);
+    }
+
+    return this.configService.getFeatureFlag$(FeatureFlag.PM12276_BreadcrumbEventLogs).pipe(
+      switchMap((featureFlagEnabled) => {
+        if (!featureFlagEnabled) {
+          return of(false);
+        }
+
+        if (organization.isProviderUser || !organization.canEditSubscription) {
+          return of(false);
+        }
+
+        const supportedProducts = [ProductTierType.Teams, ProductTierType.TeamsStarter];
+        const isSupportedProduct = supportedProducts.some(
+          (product) => product === organization.productTierType,
+        );
+
+        return of(isSupportedProduct);
+      }),
+    );
   }
 }

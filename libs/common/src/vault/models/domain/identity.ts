@@ -2,8 +2,10 @@
 // @ts-strict-ignore
 import { Jsonify } from "type-fest";
 
+import { Identity as SdkIdentity } from "@bitwarden/sdk-internal";
+
+import { EncString } from "../../../key-management/crypto/models/enc-string";
 import Domain from "../../../platform/models/domain/domain-base";
-import { EncString } from "../../../platform/models/domain/enc-string";
 import { SymmetricCryptoKey } from "../../../platform/models/domain/symmetric-crypto-key";
 import { IdentityData } from "../data/identity.data";
 import { IdentityView } from "../view/identity.view";
@@ -61,31 +63,37 @@ export class Identity extends Domain {
     );
   }
 
-  decrypt(orgId: string, encKey?: SymmetricCryptoKey): Promise<IdentityView> {
-    return this.decryptObj(
+  decrypt(
+    orgId: string,
+    context: string = "No Cipher Context",
+    encKey?: SymmetricCryptoKey,
+  ): Promise<IdentityView> {
+    return this.decryptObj<Identity, IdentityView>(
+      this,
       new IdentityView(),
-      {
-        title: null,
-        firstName: null,
-        middleName: null,
-        lastName: null,
-        address1: null,
-        address2: null,
-        address3: null,
-        city: null,
-        state: null,
-        postalCode: null,
-        country: null,
-        company: null,
-        email: null,
-        phone: null,
-        ssn: null,
-        username: null,
-        passportNumber: null,
-        licenseNumber: null,
-      },
+      [
+        "title",
+        "firstName",
+        "middleName",
+        "lastName",
+        "address1",
+        "address2",
+        "address3",
+        "city",
+        "state",
+        "postalCode",
+        "country",
+        "company",
+        "email",
+        "phone",
+        "ssn",
+        "username",
+        "passportNumber",
+        "licenseNumber",
+      ],
       orgId,
       encKey,
+      "DomainType: Identity; " + context,
     );
   }
 
@@ -158,5 +166,65 @@ export class Identity extends Domain {
       passportNumber,
       licenseNumber,
     });
+  }
+
+  /**
+   * Maps Identity to SDK format.
+   *
+   * @returns {SdkIdentity} The SDK identity object.
+   */
+  toSdkIdentity(): SdkIdentity {
+    return {
+      title: this.title?.toJSON(),
+      firstName: this.firstName?.toJSON(),
+      middleName: this.middleName?.toJSON(),
+      lastName: this.lastName?.toJSON(),
+      address1: this.address1?.toJSON(),
+      address2: this.address2?.toJSON(),
+      address3: this.address3?.toJSON(),
+      city: this.city?.toJSON(),
+      state: this.state?.toJSON(),
+      postalCode: this.postalCode?.toJSON(),
+      country: this.country?.toJSON(),
+      company: this.company?.toJSON(),
+      email: this.email?.toJSON(),
+      phone: this.phone?.toJSON(),
+      ssn: this.ssn?.toJSON(),
+      username: this.username?.toJSON(),
+      passportNumber: this.passportNumber?.toJSON(),
+      licenseNumber: this.licenseNumber?.toJSON(),
+    };
+  }
+
+  /**
+   * Maps an SDK Identity object to an Identity
+   * @param obj - The SDK Identity object
+   */
+  static fromSdkIdentity(obj: SdkIdentity): Identity | undefined {
+    if (obj == null) {
+      return undefined;
+    }
+
+    const identity = new Identity();
+    identity.title = EncString.fromJSON(obj.title);
+    identity.firstName = EncString.fromJSON(obj.firstName);
+    identity.middleName = EncString.fromJSON(obj.middleName);
+    identity.lastName = EncString.fromJSON(obj.lastName);
+    identity.address1 = EncString.fromJSON(obj.address1);
+    identity.address2 = EncString.fromJSON(obj.address2);
+    identity.address3 = EncString.fromJSON(obj.address3);
+    identity.city = EncString.fromJSON(obj.city);
+    identity.state = EncString.fromJSON(obj.state);
+    identity.postalCode = EncString.fromJSON(obj.postalCode);
+    identity.country = EncString.fromJSON(obj.country);
+    identity.company = EncString.fromJSON(obj.company);
+    identity.email = EncString.fromJSON(obj.email);
+    identity.phone = EncString.fromJSON(obj.phone);
+    identity.ssn = EncString.fromJSON(obj.ssn);
+    identity.username = EncString.fromJSON(obj.username);
+    identity.passportNumber = EncString.fromJSON(obj.passportNumber);
+    identity.licenseNumber = EncString.fromJSON(obj.licenseNumber);
+
+    return identity;
   }
 }

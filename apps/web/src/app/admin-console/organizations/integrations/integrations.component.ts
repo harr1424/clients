@@ -1,18 +1,29 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { Component } from "@angular/core";
+import { Component, OnDestroy, OnInit } from "@angular/core";
+import { ActivatedRoute } from "@angular/router";
+import { Observable, Subject, switchMap, takeUntil } from "rxjs";
 
+import {
+  getOrganizationById,
+  OrganizationService,
+} from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
+import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { IntegrationType } from "@bitwarden/common/enums";
+import { FeatureFlag } from "@bitwarden/common/enums/feature-flag.enum";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 
 import { HeaderModule } from "../../../layouts/header/header.module";
-import { FilterIntegrationsPipe, IntegrationGridComponent, Integration } from "../../../shared/";
 import { SharedModule } from "../../../shared/shared.module";
 import { SharedOrganizationModule } from "../shared";
+import { IntegrationGridComponent } from "../shared/components/integrations/integration-grid/integration-grid.component";
+import { FilterIntegrationsPipe } from "../shared/components/integrations/integrations.pipe";
+import { Integration } from "../shared/components/integrations/models";
 
 @Component({
   selector: "ac-integrations",
   templateUrl: "./integrations.component.html",
-  standalone: true,
   imports: [
     SharedModule,
     SharedOrganizationModule,
@@ -21,11 +32,40 @@ import { SharedOrganizationModule } from "../shared";
     FilterIntegrationsPipe,
   ],
 })
-export class AdminConsoleIntegrationsComponent {
+export class AdminConsoleIntegrationsComponent implements OnInit, OnDestroy {
   integrationsList: Integration[] = [];
   tabIndex: number;
+  organization$: Observable<Organization>;
+  isEventBasedIntegrationsEnabled: boolean = false;
+  private destroy$ = new Subject<void>();
 
-  constructor() {
+  ngOnInit(): void {
+    this.organization$ = this.route.params.pipe(
+      switchMap((params) =>
+        this.accountService.activeAccount$.pipe(
+          switchMap((account) =>
+            this.organizationService
+              .organizations$(account?.id)
+              .pipe(getOrganizationById(params.organizationId)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  constructor(
+    private route: ActivatedRoute,
+    private organizationService: OrganizationService,
+    private accountService: AccountService,
+    private configService: ConfigService,
+  ) {
+    this.configService
+      .getFeatureFlag$(FeatureFlag.EventBasedOrganizationIntegrations)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((isEnabled) => {
+        this.isEventBasedIntegrationsEnabled = isEnabled;
+      });
+
     this.integrationsList = [
       {
         name: "AD FS",
@@ -201,6 +241,22 @@ export class AdminConsoleIntegrationsComponent {
         type: IntegrationType.DEVICE,
       },
     ];
+
+    if (this.isEventBasedIntegrationsEnabled) {
+      this.integrationsList.push({
+        name: "Crowdstrike",
+        linkURL: "",
+        image: "../../../../../../../images/integrations/logo-crowdstrike-black.svg",
+        type: IntegrationType.EVENT,
+        description: "crowdstrikeEventIntegrationDesc",
+        isConnected: false,
+        canSetupConnection: true,
+      });
+    }
+  }
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   get IntegrationType(): typeof IntegrationType {

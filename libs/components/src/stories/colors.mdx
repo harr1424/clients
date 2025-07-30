@@ -13,7 +13,7 @@ export const Table = (args) => (
   <table class={"border tw-table-auto !tw-text-main " + args.class}>
     <thead>
       <tr>
-        <th>General usage</th>
+        <th class="tw-w-40">General usage</th>
         <th class="tw-w-20"></th>
       </tr>
     </thead>
@@ -62,9 +62,14 @@ export const Table = (args) => (
       {Row("notification-600")}
     </tbody>
     <tbody>
-      {Row("art-primary")}
-      {Row("art-accent")}
+      {Row("illustration-outline")}
+      {Row("illustration-bg-primary")}
+      {Row("illustration-bg-secondary")}
+      {Row("illustration-bg-tertiary")}
+      {Row("illustration-tertiary")}
+      {Row("illustration-logo")}
     </tbody>
+
     <thead>
       <tr>
         <th>Text</th>
@@ -78,6 +83,7 @@ export const Table = (args) => (
       {Row("text-alt2")}
       {Row("text-code")}
     </tbody>
+
   </table>
 );
 
@@ -119,6 +125,4 @@ Below are all the permited colors. Please consult design before considering addi
 <div class="tw-flex tw-space-x-4">
   <Table />
   <Table class="theme_dark tw-bg-background" />
-  <Table class="theme_nord tw-bg-background" />
-  <Table class="theme_solarize tw-bg-background" />
 </div>

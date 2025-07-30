@@ -1,4 +1,3 @@
-import { DialogRef, DIALOG_DATA } from "@angular/cdk/dialog";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { mock, MockProxy } from "jest-mock-extended";
 import { of } from "rxjs";
@@ -13,8 +12,11 @@ import { AuthRequestResponse } from "@bitwarden/common/auth/models/response/auth
 import { AppIdService } from "@bitwarden/common/platform/abstractions/app-id.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
+import { ValidationService } from "@bitwarden/common/platform/abstractions/validation.service";
 import { UserId } from "@bitwarden/common/types/guid";
-import { ToastService } from "@bitwarden/components";
+// This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
+// eslint-disable-next-line no-restricted-imports
+import { DialogRef, DIALOG_DATA, ToastService } from "@bitwarden/components";
 import { KeyService } from "@bitwarden/key-management";
 
 import { LoginApprovalComponent } from "./login-approval.component";
@@ -29,6 +31,7 @@ describe("LoginApprovalComponent", () => {
   let i18nService: MockProxy<I18nService>;
   let dialogRef: MockProxy<DialogRef>;
   let toastService: MockProxy<ToastService>;
+  let validationService: MockProxy<ValidationService>;
 
   const testNotificationId = "test-notification-id";
   const testEmail = "test@bitwarden.com";
@@ -41,6 +44,7 @@ describe("LoginApprovalComponent", () => {
     i18nService = mock<I18nService>();
     dialogRef = mock<DialogRef>();
     toastService = mock<ToastService>();
+    validationService = mock<ValidationService>();
 
     accountService.activeAccount$ = of({
       email: testEmail,
@@ -62,6 +66,7 @@ describe("LoginApprovalComponent", () => {
         { provide: KeyService, useValue: mock<KeyService>() },
         { provide: DialogRef, useValue: dialogRef },
         { provide: ToastService, useValue: toastService },
+        { provide: ValidationService, useValue: validationService },
         {
           provide: LoginApprovalComponentServiceAbstraction,
           useValue: mock<LoginApprovalComponentServiceAbstraction>(),

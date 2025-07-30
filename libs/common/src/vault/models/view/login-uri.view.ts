@@ -2,6 +2,8 @@
 // @ts-strict-ignore
 import { Jsonify } from "type-fest";
 
+import { LoginUriView as SdkLoginUriView } from "@bitwarden/sdk-internal";
+
 import { UriMatchStrategy, UriMatchStrategySetting } from "../../../models/domain/domain-service";
 import { View } from "../../../models/view/view";
 import { SafeUrls } from "../../../platform/misc/safe-urls";
@@ -112,6 +114,30 @@ export class LoginUriView implements View {
     return Object.assign(new LoginUriView(), obj);
   }
 
+  /**
+   * Converts a LoginUriView object from the SDK to a LoginUriView object.
+   */
+  static fromSdkLoginUriView(obj: SdkLoginUriView): LoginUriView | undefined {
+    if (obj == null) {
+      return undefined;
+    }
+
+    const view = new LoginUriView();
+    view.uri = obj.uri;
+    view.match = obj.match;
+
+    return view;
+  }
+
+  /** Converts a LoginUriView object to an SDK LoginUriView object. */
+  toSdkLoginUriView(): SdkLoginUriView {
+    return {
+      uri: this.uri ?? undefined,
+      match: this.match ?? undefined,
+      uriChecksum: undefined, // SDK handles uri checksum generation internally
+    };
+  }
+
   matchesUri(
     targetUri: string,
     equivalentDomains: Set<string>,
@@ -142,6 +168,8 @@ export class LoginUriView implements View {
         try {
           const regex = new RegExp(this.uri, "i");
           return regex.test(targetUri);
+          // FIXME: Remove when updating file. Eslint update
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
           // Invalid regex
           return false;

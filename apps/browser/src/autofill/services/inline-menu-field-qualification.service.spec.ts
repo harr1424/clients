@@ -17,12 +17,11 @@ describe("InlineMenuFieldQualificationService", () => {
       fields: [],
     });
     inlineMenuFieldQualificationService = new InlineMenuFieldQualificationService();
-    inlineMenuFieldQualificationService["inlineMenuFieldQualificationFlagSet"] = true;
   });
 
   describe("isFieldForLoginForm", () => {
-    it("does not disqualify totp fields with flag set to true", () => {
-      inlineMenuFieldQualificationService["inlineMenuTotpFeatureFlag"] = true;
+    it("does not disqualify totp fields for premium users", () => {
+      inlineMenuFieldQualificationService["premiumEnabled"] = true;
       const field = mock<AutofillField>({
         type: "text",
         autoCompleteType: "one-time-code",
@@ -36,8 +35,8 @@ describe("InlineMenuFieldQualificationService", () => {
       );
     });
 
-    it("disqualify totp fields with flag set to false", () => {
-      inlineMenuFieldQualificationService["inlineMenuTotpFeatureFlag"] = false;
+    it("disqualifies totp fields for non-premium users", () => {
+      inlineMenuFieldQualificationService["premiumEnabled"] = false;
       const field = mock<AutofillField>({
         type: "text",
         autoCompleteType: "one-time-code",

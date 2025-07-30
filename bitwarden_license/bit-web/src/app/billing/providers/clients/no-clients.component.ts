@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output } from "@angular/core";
 
 import { svgIcon } from "@bitwarden/components";
+import { SharedOrganizationModule } from "@bitwarden/web-vault/app/admin-console/organizations/shared";
 
 const gearIcon = svgIcon`
 <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -23,11 +24,13 @@ const gearIcon = svgIcon`
 
 @Component({
   selector: "app-no-clients",
+  imports: [SharedOrganizationModule],
   template: `<div class="tw-flex tw-flex-col tw-items-center tw-text-info">
     <bit-icon [icon]="icon"></bit-icon>
     <p class="tw-mt-4">{{ "noClients" | i18n }}</p>
     <a
       *ngIf="showAddOrganizationButton"
+      [disabled]="disableAddOrganizationButton"
       type="button"
       bitButton
       buttonType="primary"
@@ -41,6 +44,7 @@ const gearIcon = svgIcon`
 export class NoClientsComponent {
   icon = gearIcon;
   @Input() showAddOrganizationButton = true;
+  @Input() disableAddOrganizationButton = false;
   @Output() addNewOrganizationClicked = new EventEmitter();
 
   addNewOrganization = () => this.addNewOrganizationClicked.emit();

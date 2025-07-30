@@ -31,7 +31,7 @@ export default {
   parameters: {
     design: {
       type: "figma",
-      url: "https://www.figma.com/file/Zt3YSeb6E6lebAffrNLa0h/Tailwind-Component-Library?node-id=3930%3A16850&t=xXPx6GJYsJfuMQPE-4",
+      url: "https://www.figma.com/design/Zt3YSeb6E6lebAffrNLa0h/Tailwind-Component-Library?node-id=16329-35836&t=b5tDKylm5sWm2yKo-4",
     },
   },
 } as Meta<RadioGroupComponent>;
@@ -177,15 +177,15 @@ export const Disabled: Story = {
         <bit-radio-group formControlName="radio" aria-label="Example radio group">
           <bit-label>Group of radio buttons</bit-label>
 
-          <bit-radio-button id="radio-first" [value]="0" [disabled]="true">
+          <bit-radio-button [value]="0" [disabled]="true">
             <bit-label>First</bit-label>
           </bit-radio-button>
 
-          <bit-radio-button id="radio-second" [value]="1" [disabled]="true">
+          <bit-radio-button [value]="1" [disabled]="true">
             <bit-label>Second</bit-label>
           </bit-radio-button>
 
-          <bit-radio-button id="radio-third" [value]="2" [disabled]="true">
+          <bit-radio-button [value]="2" [disabled]="true">
             <bit-label>Third</bit-label>
           </bit-radio-button>
         </bit-radio-group>

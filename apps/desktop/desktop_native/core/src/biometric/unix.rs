@@ -33,12 +33,10 @@ impl super::BiometricTrait for Biometric {
             .await;
 
         match result {
-            Ok(result) => {
-                return Ok(result.is_authorized);
-            }
+            Ok(result) => Ok(result.is_authorized),
             Err(e) => {
                 println!("polkit biometric error: {:?}", e);
-                return Ok(false);
+                Ok(false)
             }
         }
     }
@@ -52,7 +50,7 @@ impl super::BiometricTrait for Biometric {
                 return Ok(true);
             }
         }
-        return Ok(false);
+        Ok(false)
     }
 
     fn derive_key_material(challenge_str: Option<&str>) -> Result<OsDerivedKey> {
@@ -68,8 +66,8 @@ impl super::BiometricTrait for Biometric {
         // so we use a a key derived from the iv. this key is not intended to add any security
         // but only a place-holder
         let key = Sha256::digest(challenge);
-        let key_b64 = base64_engine.encode(&key);
-        let iv_b64 = base64_engine.encode(&challenge);
+        let key_b64 = base64_engine.encode(key);
+        let iv_b64 = base64_engine.encode(challenge);
         Ok(OsDerivedKey { key_b64, iv_b64 })
     }
 
@@ -100,12 +98,12 @@ impl super::BiometricTrait for Biometric {
 
         let encrypted_secret = crate::password::get_password(service, account).await?;
         let secret = CipherString::from_str(&encrypted_secret)?;
-        return Ok(decrypt(&secret, &key_material)?);
+        decrypt(&secret, &key_material)
     }
 }
 
 fn random_challenge() -> [u8; 16] {
     let mut challenge = [0u8; 16];
-    rand::thread_rng().fill_bytes(&mut challenge);
+    rand::rng().fill_bytes(&mut challenge);
     challenge
 }

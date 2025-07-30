@@ -2,8 +2,10 @@
 // @ts-strict-ignore
 import { Jsonify } from "type-fest";
 
+import { Card as SdkCard } from "@bitwarden/sdk-internal";
+
+import { EncString } from "../../../key-management/crypto/models/enc-string";
 import Domain from "../../../platform/models/domain/domain-base";
-import { EncString } from "../../../platform/models/domain/enc-string";
 import { SymmetricCryptoKey } from "../../../platform/models/domain/symmetric-crypto-key";
 import { CardData } from "../data/card.data";
 import { CardView } from "../view/card.view";
@@ -37,19 +39,18 @@ export class Card extends Domain {
     );
   }
 
-  decrypt(orgId: string, encKey?: SymmetricCryptoKey): Promise<CardView> {
-    return this.decryptObj(
+  async decrypt(
+    orgId: string,
+    context = "No Cipher Context",
+    encKey?: SymmetricCryptoKey,
+  ): Promise<CardView> {
+    return this.decryptObj<Card, CardView>(
+      this,
       new CardView(),
-      {
-        cardholderName: null,
-        brand: null,
-        number: null,
-        expMonth: null,
-        expYear: null,
-        code: null,
-      },
+      ["cardholderName", "brand", "number", "expMonth", "expYear", "code"],
       orgId,
       encKey,
+      "DomainType: Card; " + context,
     );
   }
 
@@ -85,5 +86,41 @@ export class Card extends Domain {
       expYear,
       code,
     });
+  }
+
+  /**
+   *  Maps Card to SDK format.
+   *
+   * @returns {SdkCard} The SDK card object.
+   */
+  toSdkCard(): SdkCard {
+    return {
+      cardholderName: this.cardholderName?.toJSON(),
+      brand: this.brand?.toJSON(),
+      number: this.number?.toJSON(),
+      expMonth: this.expMonth?.toJSON(),
+      expYear: this.expYear?.toJSON(),
+      code: this.code?.toJSON(),
+    };
+  }
+
+  /**
+   * Maps an SDK Card object to a Card
+   * @param obj - The SDK Card object
+   */
+  static fromSdkCard(obj: SdkCard): Card | undefined {
+    if (obj == null) {
+      return undefined;
+    }
+
+    const card = new Card();
+    card.cardholderName = EncString.fromJSON(obj.cardholderName);
+    card.brand = EncString.fromJSON(obj.brand);
+    card.number = EncString.fromJSON(obj.number);
+    card.expMonth = EncString.fromJSON(obj.expMonth);
+    card.expYear = EncString.fromJSON(obj.expYear);
+    card.code = EncString.fromJSON(obj.code);
+
+    return card;
   }
 }

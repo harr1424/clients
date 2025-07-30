@@ -1,7 +1,6 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { DialogRef } from "@angular/cdk/dialog";
-import { Component, OnDestroy, OnInit, Type, ViewChild, ViewContainerRef } from "@angular/core";
+import { Component, OnDestroy, OnInit } from "@angular/core";
 import {
   first,
   firstValueFrom,
@@ -10,26 +9,32 @@ import {
   Subject,
   Subscription,
   takeUntil,
+  switchMap,
 } from "rxjs";
 
-import { ModalRef } from "@bitwarden/angular/components/modal/modal.ref";
-import { ModalService } from "@bitwarden/angular/services/modal.service";
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { PolicyService } from "@bitwarden/common/admin-console/abstractions/policy/policy.service.abstraction";
 import { PolicyType } from "@bitwarden/common/admin-console/enums";
 import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { TwoFactorProviderType } from "@bitwarden/common/auth/enums/two-factor-provider-type";
 import { TwoFactorAuthenticatorResponse } from "@bitwarden/common/auth/models/response/two-factor-authenticator.response";
 import { TwoFactorDuoResponse } from "@bitwarden/common/auth/models/response/two-factor-duo.response";
 import { TwoFactorEmailResponse } from "@bitwarden/common/auth/models/response/two-factor-email.response";
 import { TwoFactorWebAuthnResponse } from "@bitwarden/common/auth/models/response/two-factor-web-authn.response";
 import { TwoFactorYubiKeyResponse } from "@bitwarden/common/auth/models/response/two-factor-yubi-key.response";
+import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { TwoFactorProviders } from "@bitwarden/common/auth/services/two-factor.service";
 import { AuthResponse } from "@bitwarden/common/auth/types/auth-response";
 import { BillingAccountProfileStateService } from "@bitwarden/common/billing/abstractions/account/billing-account-profile-state.service";
 import { ProductTierType } from "@bitwarden/common/billing/enums";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
+import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { MessagingService } from "@bitwarden/common/platform/abstractions/messaging.service";
-import { DialogService } from "@bitwarden/components";
+import { DialogRef, DialogService, ItemModule } from "@bitwarden/components";
+
+import { LooseComponentsModule } from "../../../shared/loose-components.module";
+import { SharedModule } from "../../../shared/shared.module";
 
 import { TwoFactorRecoveryComponent } from "./two-factor-recovery.component";
 import { TwoFactorSetupAuthenticatorComponent } from "./two-factor-setup-authenticator.component";
@@ -42,18 +47,16 @@ import { TwoFactorVerifyComponent } from "./two-factor-verify.component";
 @Component({
   selector: "app-two-factor-setup",
   templateUrl: "two-factor-setup.component.html",
+  imports: [ItemModule, LooseComponentsModule, SharedModule],
 })
 export class TwoFactorSetupComponent implements OnInit, OnDestroy {
-  @ViewChild("yubikeyTemplate", { read: ViewContainerRef, static: true })
-  yubikeyModalRef: ViewContainerRef;
-
   organizationId: string;
   organization: Organization;
   providers: any[] = [];
   canAccessPremium$: Observable<boolean>;
+  recoveryCodeWarningMessage: string;
   showPolicyWarning = false;
   loading = true;
-  modal: ModalRef;
   formPromise: Promise<any>;
 
   tabbedHeader = true;
@@ -65,15 +68,23 @@ export class TwoFactorSetupComponent implements OnInit, OnDestroy {
   constructor(
     protected dialogService: DialogService,
     protected apiService: ApiService,
-    protected modalService: ModalService,
     protected messagingService: MessagingService,
     protected policyService: PolicyService,
     billingAccountProfileStateService: BillingAccountProfileStateService,
+    protected accountService: AccountService,
+    protected configService: ConfigService,
+    protected i18nService: I18nService,
   ) {
-    this.canAccessPremium$ = billingAccountProfileStateService.hasPremiumFromAnySource$;
+    this.canAccessPremium$ = this.accountService.activeAccount$.pipe(
+      switchMap((account) =>
+        billingAccountProfileStateService.hasPremiumFromAnySource$(account.id),
+      ),
+    );
   }
 
   async ngOnInit() {
+    this.recoveryCodeWarningMessage = this.i18nService.t("yourSingleUseRecoveryCode");
+
     for (const key in TwoFactorProviders) {
       // eslint-disable-next-line
       if (!TwoFactorProviders.hasOwnProperty(key)) {
@@ -97,13 +108,17 @@ export class TwoFactorSetupComponent implements OnInit, OnDestroy {
 
     this.providers.sort((a: any, b: any) => a.sort - b.sort);
 
-    this.policyService
-      .policyAppliesToActiveUser$(PolicyType.TwoFactorAuthentication)
-      .pipe(takeUntil(this.destroy$))
+    this.accountService.activeAccount$
+      .pipe(
+        getUserId,
+        switchMap((userId) =>
+          this.policyService.policyAppliesToUser$(PolicyType.TwoFactorAuthentication, userId),
+        ),
+        takeUntil(this.destroy$),
+      )
       .subscribe((policyAppliesToActiveUser) => {
         this.twoFactorAuthPolicyAppliesToActiveUser = policyAppliesToActiveUser;
       });
-
     await this.load();
   }
 
@@ -257,21 +272,11 @@ export class TwoFactorSetupComponent implements OnInit, OnDestroy {
     return this.apiService.getTwoFactorProviders();
   }
 
-  protected filterProvider(type: TwoFactorProviderType) {
+  protected filterProvider(type: TwoFactorProviderType): boolean {
     return type === TwoFactorProviderType.OrganizationDuo;
   }
 
-  protected async openModal<T>(ref: ViewContainerRef, type: Type<T>): Promise<T> {
-    const [modal, childComponent] = await this.modalService.openViewRef(type, ref);
-    this.modal = modal;
-
-    return childComponent;
-  }
-
   protected updateStatus(enabled: boolean, type: TwoFactorProviderType) {
-    if (!enabled && this.modal != null) {
-      this.modal.close();
-    }
     this.providers.forEach((p) => {
       if (p.type === type && enabled !== undefined) {
         p.enabled = enabled;

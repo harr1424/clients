@@ -34,6 +34,12 @@ export default {
       (story) => `<div class="tw-bg-background-alt tw-p-10 tw-text-main">${story}</div>`,
     ),
   ],
+  parameters: {
+    design: {
+      type: "figma",
+      url: "https://www.figma.com/design/Zt3YSeb6E6lebAffrNLa0h/Tailwind-Component-Library?node-id=16329-28355&t=b5tDKylm5sWm2yKo-4",
+    },
+  },
 } as Meta;
 
 type Story = StoryObj<CardComponent>;
@@ -85,7 +91,7 @@ export const WithoutBorderRadius: Story = {
     template: /*html*/ `
     <bit-layout>
       <bit-card>
-        <p bitTypography="body1" class="!tw-mb-0">Cards used in <code>bit-layout</code> will not have a border radius</p>
+        <p bitTypography="body1" class="!tw-mb-0">Cards used in <code class="tw-text-danger-700">bit-layout</code> will not have a border radius</p>
       </bit-card>
     </bit-layout>
     `,

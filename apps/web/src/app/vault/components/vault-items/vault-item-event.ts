@@ -1,19 +1,19 @@
 import { CollectionView } from "@bitwarden/admin-console/common";
-import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
+import { CipherViewLike } from "@bitwarden/common/vault/utils/cipher-view-like-utils";
 
 import { VaultItem } from "./vault-item";
 
-export type VaultItemEvent =
-  | { type: "viewAttachments"; item: CipherView }
+export type VaultItemEvent<C extends CipherViewLike> =
+  | { type: "viewAttachments"; item: C }
   | { type: "bulkEditCollectionAccess"; items: CollectionView[] }
   | { type: "viewCollectionAccess"; item: CollectionView; readonly: boolean }
-  | { type: "viewEvents"; item: CipherView }
+  | { type: "viewEvents"; item: C }
   | { type: "editCollection"; item: CollectionView; readonly: boolean }
-  | { type: "clone"; item: CipherView }
-  | { type: "restore"; items: CipherView[] }
-  | { type: "delete"; items: VaultItem[] }
-  | { type: "copyField"; item: CipherView; field: "username" | "password" | "totp" }
-  | { type: "moveToFolder"; items: CipherView[] }
-  | { type: "assignToCollections"; items: CipherView[] }
-  | { type: "toggleFavorite"; item: CipherView }
-  | { type: "editCipher"; item: CipherView };
+  | { type: "clone"; item: C }
+  | { type: "restore"; items: C[] }
+  | { type: "delete"; items: VaultItem<C>[] }
+  | { type: "copyField"; item: C; field: "username" | "password" | "totp" }
+  | { type: "moveToFolder"; items: C[] }
+  | { type: "assignToCollections"; items: C[] }
+  | { type: "toggleFavorite"; item: C }
+  | { type: "editCipher"; item: C };

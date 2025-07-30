@@ -13,6 +13,8 @@ import { Subject, takeUntil } from "rxjs";
 import { ControlsOf } from "@bitwarden/angular/types/controls-of";
 import { FormSelectionList } from "@bitwarden/angular/utils/form-selection-list";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+// FIXME: remove `src` and fix import
+// eslint-disable-next-line no-restricted-imports
 import { SelectItemView } from "@bitwarden/components/src/multi-select/models/select-item-view";
 
 import {
@@ -24,6 +26,8 @@ import {
   Permission,
 } from "./access-selector.models";
 
+// FIXME: update to use a const object instead of a typescript enum
+// eslint-disable-next-line @bitwarden/platform/no-enums
 export enum PermissionMode {
   /**
    * No permission controls or column present. No permission values are emitted.
@@ -51,6 +55,7 @@ export enum PermissionMode {
       multi: true,
     },
   ],
+  standalone: false,
 })
 export class AccessSelectorComponent implements ControlValueAccessor, OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
@@ -308,7 +313,7 @@ export class AccessSelectorComponent implements ControlValueAccessor, OnInit, On
   protected itemIcon(item: AccessItemView) {
     switch (item.type) {
       case AccessItemType.Collection:
-        return "bwi-collection";
+        return "bwi-collection-shared";
       case AccessItemType.Group:
         return "bwi-users";
       case AccessItemType.Member:

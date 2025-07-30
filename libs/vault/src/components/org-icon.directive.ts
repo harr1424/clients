@@ -1,5 +1,3 @@
-// FIXME: Update this file to be type safe and remove this and next line
-// @ts-strict-ignore
 import { Directive, ElementRef, HostBinding, Input, Renderer2 } from "@angular/core";
 
 import { ProductTierType } from "@bitwarden/common/billing/enums";
@@ -7,11 +5,10 @@ import { ProductTierType } from "@bitwarden/common/billing/enums";
 export type OrgIconSize = "default" | "small" | "large";
 
 @Directive({
-  standalone: true,
   selector: "[appOrgIcon]",
 })
 export class OrgIconDirective {
-  @Input({ required: true }) tierType: ProductTierType;
+  @Input({ required: true }) tierType!: ProductTierType;
   @Input() size?: OrgIconSize = "default";
 
   constructor(

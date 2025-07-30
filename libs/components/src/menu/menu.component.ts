@@ -1,6 +1,6 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { FocusKeyManager } from "@angular/cdk/a11y";
+import { FocusKeyManager, CdkTrapFocus } from "@angular/cdk/a11y";
 import {
   Component,
   Output,
@@ -10,7 +10,7 @@ import {
   ContentChildren,
   QueryList,
   AfterContentInit,
-  Input,
+  input,
 } from "@angular/core";
 
 import { MenuItemDirective } from "./menu-item.directive";
@@ -19,6 +19,7 @@ import { MenuItemDirective } from "./menu-item.directive";
   selector: "bit-menu",
   templateUrl: "./menu.component.html",
   exportAs: "menuComponent",
+  imports: [CdkTrapFocus],
 })
 export class MenuComponent implements AfterContentInit {
   @ViewChild(TemplateRef) templateRef: TemplateRef<any>;
@@ -27,12 +28,12 @@ export class MenuComponent implements AfterContentInit {
   menuItems: QueryList<MenuItemDirective>;
   keyManager?: FocusKeyManager<MenuItemDirective>;
 
-  @Input() ariaRole: "menu" | "dialog" = "menu";
+  readonly ariaRole = input<"menu" | "dialog">("menu");
 
-  @Input() ariaLabel: string;
+  readonly ariaLabel = input<string>();
 
   ngAfterContentInit() {
-    if (this.ariaRole === "menu") {
+    if (this.ariaRole() === "menu") {
       this.keyManager = new FocusKeyManager(this.menuItems)
         .withWrap()
         .skipPredicate((item) => item.disabled);

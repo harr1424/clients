@@ -1,16 +1,18 @@
-// FIXME: Update this file to be type safe and remove this and next line
-// @ts-strict-ignore
 import { Injectable } from "@angular/core";
 import { firstValueFrom } from "rxjs";
 
 import { EventCollectionService } from "@bitwarden/common/abstractions/event/event-collection.service";
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { BillingAccountProfileStateService } from "@bitwarden/common/billing/abstractions/account/billing-account-profile-state.service";
 import { EventType } from "@bitwarden/common/enums";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { TotpService } from "@bitwarden/common/vault/abstractions/totp.service";
 import { CipherRepromptType } from "@bitwarden/common/vault/enums";
-import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
+import {
+  CipherViewLike,
+  CipherViewLikeUtils,
+} from "@bitwarden/common/vault/utils/cipher-view-like-utils";
 import { ToastService } from "@bitwarden/components";
 import { PasswordRepromptService } from "@bitwarden/vault";
 
@@ -89,6 +91,7 @@ export class CopyCipherFieldService {
     private totpService: TotpService,
     private i18nService: I18nService,
     private billingAccountProfileStateService: BillingAccountProfileStateService,
+    private accountService: AccountService,
   ) {}
 
   /**
@@ -103,7 +106,7 @@ export class CopyCipherFieldService {
   async copy(
     valueToCopy: string,
     actionType: CopyAction,
-    cipher: CipherView,
+    cipher: CipherViewLike,
     skipReprompt: boolean = false,
   ): Promise<boolean> {
     const action = CopyActions[actionType];
@@ -124,14 +127,18 @@ export class CopyCipherFieldService {
       if (!(await this.totpAllowed(cipher))) {
         return false;
       }
-      valueToCopy = await this.totpService.getCode(valueToCopy);
+      const totpResponse = await firstValueFrom(this.totpService.getCode$(valueToCopy));
+      if (!totpResponse?.code) {
+        return false;
+      }
+      valueToCopy = totpResponse.code;
     }
 
     this.platformUtilsService.copyToClipboard(valueToCopy);
     this.toastService.showToast({
       variant: "success",
       message: this.i18nService.t("valueCopied", this.i18nService.t(action.typeI18nKey)),
-      title: null,
+      title: "",
     });
 
     if (action.event !== undefined) {
@@ -149,11 +156,20 @@ export class CopyCipherFieldService {
   /**
    * Determines if TOTP generation is allowed for a cipher and user.
    */
-  async totpAllowed(cipher: CipherView): Promise<boolean> {
+  async totpAllowed(cipher: CipherViewLike): Promise<boolean> {
+    const activeAccount = await firstValueFrom(this.accountService.activeAccount$);
+    if (!activeAccount?.id) {
+      return false;
+    }
+
+    const login = CipherViewLikeUtils.getLogin(cipher);
+
     return (
-      (cipher?.login?.hasTotp ?? false) &&
+      !!login?.totp &&
       (cipher.organizationUseTotp ||
-        (await firstValueFrom(this.billingAccountProfileStateService.hasPremiumFromAnySource$)))
+        (await firstValueFrom(
+          this.billingAccountProfileStateService.hasPremiumFromAnySource$(activeAccount.id),
+        )))
     );
   }
 }

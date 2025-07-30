@@ -2,6 +2,7 @@
 // @ts-strict-ignore
 import { FocusKeyManager } from "@angular/cdk/a11y";
 import { coerceNumberProperty } from "@angular/cdk/coercion";
+import { NgTemplateOutlet } from "@angular/common";
 import {
   AfterContentChecked,
   AfterContentInit,
@@ -10,15 +11,20 @@ import {
   ContentChildren,
   EventEmitter,
   Input,
-  OnDestroy,
   Output,
   QueryList,
   ViewChildren,
+  input,
+  inject,
+  DestroyRef,
 } from "@angular/core";
-import { Subject, takeUntil } from "rxjs";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
+import { TabHeaderComponent } from "../shared/tab-header.component";
+import { TabListContainerDirective } from "../shared/tab-list-container.directive";
 import { TabListItemDirective } from "../shared/tab-list-item.directive";
 
+import { TabBodyComponent } from "./tab-body.component";
 import { TabComponent } from "./tab.component";
 
 /** Used to generate unique ID's for each tab component */
@@ -27,30 +33,38 @@ let nextId = 0;
 @Component({
   selector: "bit-tab-group",
   templateUrl: "./tab-group.component.html",
+  imports: [
+    NgTemplateOutlet,
+    TabHeaderComponent,
+    TabListContainerDirective,
+    TabListItemDirective,
+    TabBodyComponent,
+  ],
 })
-export class TabGroupComponent
-  implements AfterContentChecked, AfterContentInit, AfterViewInit, OnDestroy
-{
+export class TabGroupComponent implements AfterContentChecked, AfterContentInit, AfterViewInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   private readonly _groupId: number;
-  private readonly destroy$ = new Subject<void>();
   private _indexToSelect: number | null = 0;
 
   /**
    * Aria label for the tab list menu
    */
-  @Input() label = "";
+  readonly label = input("");
 
   /**
    * Keep the content of off-screen tabs in the DOM.
    * Useful for keeping <audio> or <video> elements from re-initializing
    * after navigating between tabs.
    */
-  @Input() preserveContent = false;
+  readonly preserveContent = input(false);
 
   @ContentChildren(TabComponent) tabs: QueryList<TabComponent>;
   @ViewChildren(TabListItemDirective) tabLabels: QueryList<TabListItemDirective>;
 
   /** The index of the active tab. */
+  // TODO: Skipped for signal migration because:
+  //  Accessor inputs cannot be migrated as they are too complex.
   @Input()
   get selectedIndex(): number | null {
     return this._selectedIndex;
@@ -136,7 +150,7 @@ export class TabGroupComponent
   ngAfterContentInit() {
     // Subscribe to any changes in the number of tabs, in order to be able
     // to re-render content when new tabs are added or removed.
-    this.tabs.changes.pipe(takeUntil(this.destroy$)).subscribe(() => {
+    this.tabs.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       const indexToSelect = this._clampTabIndex(this._indexToSelect);
 
       // If the selected tab didn't explicitly change, keep the previously
@@ -167,11 +181,6 @@ export class TabGroupComponent
         }
       }
     });
-  }
-
-  ngOnDestroy() {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   private _clampTabIndex(index: number): number {

@@ -45,6 +45,14 @@ body * {
   &.no-items,
   &.save-login {
     font-size: 1.6rem;
+    &:has(:focus-visible) {
+      outline-width: 0.2rem;
+      outline-style: solid;
+
+      @include themify($themes) {
+        outline-color: themed("focusOutlineColor");
+      }
+    }
   }
 }
 
@@ -402,6 +410,11 @@ body * {
 
     @include themify($themes) {
       color: themed("mutedTextColor");
+    }
+
+    &.masked-totp {
+      font-size: 0.875rem;
+      letter-spacing: 0.2rem;
     }
 
     &--passkey {

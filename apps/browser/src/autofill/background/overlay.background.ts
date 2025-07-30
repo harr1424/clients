@@ -13,8 +13,10 @@ import {
 } from "rxjs";
 import { parse } from "tldts";
 
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { AuthService } from "@bitwarden/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authentication-status";
+import { getOptionalUserId, getUserId } from "@bitwarden/common/auth/services/account.service";
 import {
   AutofillOverlayVisibility,
   SHOW_AUTOFILL_BUTTON,
@@ -34,6 +36,7 @@ import { LogService } from "@bitwarden/common/platform/abstractions/log.service"
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { ThemeStateService } from "@bitwarden/common/platform/theming/theme-state.service";
+import { UserId } from "@bitwarden/common/types/guid";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { TotpService } from "@bitwarden/common/vault/abstractions/totp.service";
 import { VaultSettingsService } from "@bitwarden/common/vault/abstractions/vault-settings/vault-settings.service";
@@ -46,8 +49,12 @@ import { IdentityView } from "@bitwarden/common/vault/models/view/identity.view"
 import { LoginUriView } from "@bitwarden/common/vault/models/view/login-uri.view";
 import { LoginView } from "@bitwarden/common/vault/models/view/login.view";
 
+// FIXME (PM-22628): Popup imports are forbidden in background
+// eslint-disable-next-line no-restricted-imports
 import { openUnlockPopout } from "../../auth/popup/utils/auth-popout-window";
 import { BrowserApi } from "../../platform/browser/browser-api";
+// FIXME (PM-22628): Popup imports are forbidden in background
+// eslint-disable-next-line no-restricted-imports
 import {
   openAddEditVaultItemPopout,
   openViewVaultItemPopout,
@@ -66,9 +73,11 @@ import { InlineMenuFormFieldData } from "../services/abstractions/autofill-overl
 import { AutofillService, PageDetail } from "../services/abstractions/autofill.service";
 import { InlineMenuFieldQualificationService } from "../services/abstractions/inline-menu-field-qualifications.service";
 import {
+  areKeyValuesNull,
   generateDomainMatchPatterns,
   generateRandomChars,
   isInvalidResponseStatusCode,
+  rectHasSize,
   specialCharacterToKeyMap,
 } from "../utils";
 
@@ -129,6 +138,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
   private currentInlineMenuCiphersCount: number = 0;
   private currentAddNewItemData: CurrentAddNewItemData;
   private focusedFieldData: FocusedFieldData;
+  private allFieldData: AutofillField[];
   private isFieldCurrentlyFocused: boolean = false;
   private isFieldCurrentlyFilling: boolean = false;
   private isInlineMenuButtonVisible: boolean = false;
@@ -222,6 +232,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     private inlineMenuFieldQualificationService: InlineMenuFieldQualificationService,
     private themeStateService: ThemeStateService,
     private totpService: TotpService,
+    private accountService: AccountService,
     private generatePasswordCallback: () => Promise<string>,
     private addPasswordCallback: (password: string) => Promise<void>,
   ) {
@@ -402,13 +413,20 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     currentTab: chrome.tabs.Tab,
     updateAllCipherTypes: boolean,
   ): Promise<CipherView[]> {
-    if (updateAllCipherTypes || !this.cardAndIdentityCiphers) {
-      return this.getAllCipherTypeViews(currentTab);
+    const activeUserId = await firstValueFrom(
+      this.accountService.activeAccount$.pipe(getOptionalUserId),
+    );
+    if (!activeUserId) {
+      return [];
     }
 
-    const cipherViews = (await this.cipherService.getAllDecryptedForUrl(currentTab.url || "")).sort(
-      (a, b) => this.cipherService.sortCiphersByLastUsedThenName(a, b),
-    );
+    if (updateAllCipherTypes || !this.cardAndIdentityCiphers) {
+      return this.getAllCipherTypeViews(currentTab, activeUserId);
+    }
+
+    const cipherViews = (
+      await this.cipherService.getAllDecryptedForUrl(currentTab.url || "", activeUserId)
+    ).sort((a, b) => this.cipherService.sortCiphersByLastUsedThenName(a, b));
 
     return this.cardAndIdentityCiphers
       ? cipherViews.concat(...this.cardAndIdentityCiphers)
@@ -419,15 +437,19 @@ export class OverlayBackground implements OverlayBackgroundInterface {
    * Queries all cipher types from the user's vault returns them sorted by last used.
    *
    * @param currentTab - The current tab
+   * @param userId - The active user id
    */
-  private async getAllCipherTypeViews(currentTab: chrome.tabs.Tab): Promise<CipherView[]> {
+  private async getAllCipherTypeViews(
+    currentTab: chrome.tabs.Tab,
+    userId: UserId,
+  ): Promise<CipherView[]> {
     if (!this.cardAndIdentityCiphers) {
       this.cardAndIdentityCiphers = new Set([]);
     }
 
     this.cardAndIdentityCiphers.clear();
     const cipherViews = (
-      await this.cipherService.getAllDecryptedForUrl(currentTab.url || "", [
+      await this.cipherService.getAllDecryptedForUrl(currentTab.url || "", userId, [
         CipherType.Card,
         CipherType.Identity,
       ])
@@ -441,7 +463,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
       const cipherView = cipherViews[cipherIndex];
       if (
         !this.cardAndIdentityCiphers.has(cipherView) &&
-        [CipherType.Card, CipherType.Identity].includes(cipherView.type)
+        ([CipherType.Card, CipherType.Identity] as CipherType[]).includes(cipherView.type)
       ) {
         this.cardAndIdentityCiphers.add(cipherView);
       }
@@ -556,6 +578,28 @@ export class OverlayBackground implements OverlayBackgroundInterface {
 
     for (let cipherIndex = 0; cipherIndex < inlineMenuCiphersArray.length; cipherIndex++) {
       const [inlineMenuCipherId, cipher] = inlineMenuCiphersArray[cipherIndex];
+
+      switch (cipher.type) {
+        case CipherType.Card:
+          if (areKeyValuesNull(cipher.card)) {
+            continue;
+          }
+          break;
+
+        case CipherType.Identity:
+          if (areKeyValuesNull(cipher.identity)) {
+            continue;
+          }
+          break;
+
+        case CipherType.Login:
+          if (
+            areKeyValuesNull(cipher.login, ["username", "password", "totp", "fido2Credentials"])
+          ) {
+            continue;
+          }
+          break;
+      }
       if (!this.focusedFieldMatchesFillType(cipher.type)) {
         continue;
       }
@@ -621,20 +665,23 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     return this.inlineMenuFido2Credentials.has(credentialId);
   }
 
+  /**
+   * When focused field data contains account creation field type of totp
+   * and there are totp fields in the current frame for page details return true
+   *
+   * @returns boolean
+   */
   private isTotpFieldForCurrentField(): boolean {
     if (!this.focusedFieldData) {
       return false;
     }
-    const { tabId, frameId } = this.focusedFieldData;
-    const pageDetailsMap = this.pageDetailsForTab[tabId];
-    if (!pageDetailsMap || !pageDetailsMap.has(frameId)) {
+    const totpFields = this.getTotpFields();
+    if (!totpFields) {
       return false;
     }
-    const pageDetail = pageDetailsMap.get(frameId);
     return (
-      pageDetail?.details?.fields?.every((field) =>
-        this.inlineMenuFieldQualificationService.isTotpField(field),
-      ) || false
+      totpFields.length > 0 &&
+      this.focusedFieldData?.accountCreationFieldType === InlineMenuAccountCreationFieldType.Totp
     );
   }
 
@@ -667,13 +714,15 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     };
 
     if (cipher.type === CipherType.Login) {
-      const totpCode = await this.totpService.getCode(cipher.login?.totp);
-      const totpCodeTimeInterval = this.totpService.getTimeInterval(cipher.login?.totp);
+      const totpResponse = cipher.login?.totp
+        ? await firstValueFrom(this.totpService.getCode$(cipher.login.totp))
+        : undefined;
+
       inlineMenuData.login = {
         username: cipher.login.username,
-        totp: totpCode,
+        totp: totpResponse?.code,
         totpField: this.isTotpFieldForCurrentField(),
-        totpCodeTimeInterval: totpCodeTimeInterval,
+        totpCodeTimeInterval: totpResponse?.period,
         passkey: hasPasskey
           ? {
               rpName: cipher.login.fido2Credentials[0].rpName,
@@ -752,7 +801,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
    * @param focusedFieldData - Optional focused field data to validate against
    */
   private focusedFieldMatchesFillType(
-    fillType: InlineMenuFillTypes,
+    fillType: InlineMenuFillType,
     focusedFieldData?: FocusedFieldData,
   ) {
     const focusedFieldFillType = focusedFieldData
@@ -761,7 +810,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
 
     // When updating the current password for a field, it should fill with a login cipher
     if (
-      focusedFieldFillType === InlineMenuFillType.CurrentPasswordUpdate &&
+      focusedFieldFillType === InlineMenuFillTypes.CurrentPasswordUpdate &&
       fillType === CipherType.Login
     ) {
       return true;
@@ -774,7 +823,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
    * Identifies whether the inline menu is being shown on an account creation field.
    */
   private shouldShowInlineMenuAccountCreation(): boolean {
-    if (this.focusedFieldMatchesFillType(InlineMenuFillType.AccountCreationUsername)) {
+    if (this.focusedFieldMatchesFillType(InlineMenuFillTypes.AccountCreationUsername)) {
       return true;
     }
 
@@ -1091,9 +1140,13 @@ export class OverlayBackground implements OverlayBackgroundInterface {
       this.updateLastUsedInlineMenuCipher(inlineMenuCipherId, cipher);
 
       if (cipher.login?.totp) {
-        this.platformUtilsService.copyToClipboard(
-          await this.totpService.getCode(cipher.login.totp),
-        );
+        const totpResponse = await firstValueFrom(this.totpService.getCode$(cipher.login.totp));
+
+        if (totpResponse?.code) {
+          this.platformUtilsService.copyToClipboard(totpResponse.code);
+        } else {
+          this.logService.error("Failed to get TOTP code for inline menu cipher");
+        }
       }
       return;
     }
@@ -1103,7 +1156,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     }
 
     let pageDetails = Array.from(pageDetailsForTab.values());
-    if (this.focusedFieldMatchesFillType(InlineMenuFillType.CurrentPasswordUpdate)) {
+    if (this.focusedFieldMatchesFillType(InlineMenuFillTypes.CurrentPasswordUpdate)) {
       pageDetails = this.getFilteredPageDetails(
         pageDetails,
         this.inlineMenuFieldQualificationService.isUpdateCurrentPasswordField,
@@ -1345,6 +1398,71 @@ export class OverlayBackground implements OverlayBackgroundInterface {
   }
 
   /**
+   * Get all the totp fields for the tab and frame of the currently focused field
+   */
+  private getTotpFields(): AutofillField[] {
+    const currentTabId = this.focusedFieldData?.tabId;
+    const currentFrameId = this.focusedFieldData?.frameId;
+    const pageDetailsMap = this.pageDetailsForTab[currentTabId];
+    const pageDetails = pageDetailsMap?.get(currentFrameId);
+
+    const fields = pageDetails?.details?.fields || [];
+    const totpFields = fields.filter((f) =>
+      this.inlineMenuFieldQualificationService.isTotpField(f),
+    );
+
+    return totpFields;
+  }
+
+  /**
+   * calculates the postion and width for multi-input totp field inline menu
+   * @param totpFieldArray - the totp fields used to evaluate the position of the menu
+   */
+  private calculateTotpMultiInputMenuBounds(totpFieldArray: AutofillField[]) {
+    // Filter the fields based on the provided totpfields
+    const filteredObjects = this.allFieldData.filter((obj) =>
+      totpFieldArray.some((o) => o.opid === obj.opid),
+    );
+
+    // Return null if no matching objects are found
+    if (filteredObjects.length === 0) {
+      return null;
+    }
+    // Calculate the smallest left and largest right values to determine width
+    const left = Math.min(
+      ...filteredObjects.filter((obj) => rectHasSize(obj.rect)).map((obj) => obj.rect.left),
+    );
+    const largestRight = Math.max(
+      ...filteredObjects.filter((obj) => rectHasSize(obj.rect)).map((obj) => obj.rect.right),
+    );
+
+    const width = largestRight - left;
+
+    return { left, width };
+  }
+
+  /**
+   * calculates the postion for multi-input totp field inline button
+   * @param totpFieldArray - the totp fields used to evaluate the position of the menu
+   */
+  private calculateTotpMultiInputButtonBounds(totpFieldArray: AutofillField[]) {
+    const filteredObjects = this.allFieldData.filter((obj) =>
+      totpFieldArray.some((o) => o.opid === obj.opid),
+    );
+
+    if (filteredObjects.length === 0) {
+      return null;
+    }
+
+    const maxRight = Math.max(...filteredObjects.map((obj) => obj.rect.right));
+    const maxObject = filteredObjects.find((obj) => obj.rect.right === maxRight);
+    const top = maxObject.rect.top - maxObject.rect.height * 0.39;
+    const left = maxRight - maxObject.rect.height * 0.3;
+
+    return { left, top };
+  }
+
+  /**
    * Updates the position of either the inline menu list or button. The position
    * is based on the focused field's position and dimensions.
    *
@@ -1449,8 +1567,17 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     const subFrameTopOffset = subFrameOffsets?.top || 0;
     const subFrameLeftOffset = subFrameOffsets?.left || 0;
 
-    const { top, left, width, height } = this.focusedFieldData.focusedFieldRects;
+    const { width, height } = this.focusedFieldData.focusedFieldRects;
+    let { top, left } = this.focusedFieldData.focusedFieldRects;
     const { paddingRight, paddingLeft } = this.focusedFieldData.focusedFieldStyles;
+
+    if (this.isTotpFieldForCurrentField()) {
+      const totpFields = this.getTotpFields();
+      if (totpFields.length > 1) {
+        ({ left, top } = this.calculateTotpMultiInputButtonBounds(totpFields));
+      }
+    }
+
     let elementOffset = height * 0.37;
     if (height >= 35) {
       elementOffset = height >= 50 ? height * 0.47 : height * 0.42;
@@ -1489,7 +1616,16 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     const subFrameTopOffset = subFrameOffsets?.top || 0;
     const subFrameLeftOffset = subFrameOffsets?.left || 0;
 
-    const { top, left, width, height } = this.focusedFieldData.focusedFieldRects;
+    const { top, height } = this.focusedFieldData.focusedFieldRects;
+    let { left, width } = this.focusedFieldData.focusedFieldRects;
+
+    if (this.isTotpFieldForCurrentField()) {
+      const totpFields = this.getTotpFields();
+
+      if (totpFields.length > 1) {
+        ({ left, width } = this.calculateTotpMultiInputMenuBounds(totpFields));
+      }
+    }
 
     this.inlineMenuPosition.list = {
       top: Math.round(top + height + subFrameTopOffset),
@@ -1512,7 +1648,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
    * @param sender - The sender of the extension message
    */
   private setFocusedFieldData(
-    { focusedFieldData }: OverlayBackgroundExtensionMessage,
+    { focusedFieldData, allFieldsRect }: OverlayBackgroundExtensionMessage,
     sender: chrome.runtime.MessageSender,
   ) {
     if (
@@ -1529,6 +1665,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
 
     const previousFocusedFieldData = this.focusedFieldData;
     this.focusedFieldData = { ...focusedFieldData, tabId: sender.tab.id, frameId: sender.frameId };
+    this.allFieldData = allFieldsRect;
     this.isFieldCurrentlyFocused = true;
 
     if (this.shouldUpdatePasswordGeneratorMenuOnFieldFocus()) {
@@ -1549,7 +1686,12 @@ export class OverlayBackground implements OverlayBackgroundInterface {
       !this.focusedFieldMatchesFillType(
         focusedFieldData?.inlineMenuFillType,
         previousFocusedFieldData,
-      )
+      ) ||
+      // a TOTP field was just focused to - or unfocused from — a non-TOTP field
+      // may want to generalize this logic if cipher inline menu types exceed [general cipher, TOTP]
+      [focusedFieldData, previousFocusedFieldData].filter(
+        (fd) => fd?.accountCreationFieldType === InlineMenuAccountCreationFieldType.Totp,
+      ).length === 1
     ) {
       const updateAllCipherTypes = !this.focusedFieldMatchesFillType(
         CipherType.Login,
@@ -1567,7 +1709,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
   private shouldUpdatePasswordGeneratorMenuOnFieldFocus() {
     return (
       this.isInlineMenuButtonVisible &&
-      this.focusedFieldMatchesFillType(InlineMenuFillType.PasswordGeneration)
+      this.focusedFieldMatchesFillType(InlineMenuFillTypes.PasswordGeneration)
     );
   }
 
@@ -1629,9 +1771,9 @@ export class OverlayBackground implements OverlayBackgroundInterface {
   private shouldUpdateAccountCreationMenuOnFieldFocus(previousFocusedFieldData: FocusedFieldData) {
     const accountCreationFieldBlurred =
       this.focusedFieldMatchesFillType(
-        InlineMenuFillType.AccountCreationUsername,
+        InlineMenuFillTypes.AccountCreationUsername,
         previousFocusedFieldData,
-      ) && !this.focusedFieldMatchesFillType(InlineMenuFillType.AccountCreationUsername);
+      ) && !this.focusedFieldMatchesFillType(InlineMenuFillTypes.AccountCreationUsername);
     return accountCreationFieldBlurred || this.shouldShowInlineMenuAccountCreation();
   }
 
@@ -1722,7 +1864,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
 
   /**
    * Verifies whether the save login inline menu view should be shown. This requires that
-   * the login data on the page contains a username and either a current or new password.
+   * the login data on the page contains either a current or new password.
    *
    * @param tab - The tab to check for login data
    */
@@ -1738,8 +1880,8 @@ export class OverlayBackground implements OverlayBackgroundInterface {
 
     return (
       (this.shouldShowInlineMenuAccountCreation() ||
-        this.focusedFieldMatchesFillType(InlineMenuFillType.PasswordGeneration)) &&
-      !!(loginData.username && (loginData.password || loginData.newPassword))
+        this.focusedFieldMatchesFillType(InlineMenuFillTypes.PasswordGeneration)) &&
+      !!(loginData.password || loginData.newPassword)
     );
   }
 
@@ -1970,6 +2112,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     }
 
     this.closeInlineMenu(sender);
+
     await this.openViewVaultItemPopout(sender.tab, {
       cipherId: cipher.id,
       action: SHOW_AUTOFILL_BUTTON,
@@ -2026,7 +2169,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
         "passwordRegenerated",
         "passwords",
         "regeneratePassword",
-        "saveLoginToBitwarden",
+        "saveToBitwarden",
         "toggleBitwardenVaultOverlay",
         "totpCodeAria",
         "totpSecondsSpanAria",
@@ -2275,6 +2418,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     card,
     identity,
     sender,
+    addNewCipherType,
   }: CurrentAddNewItemData) {
     const cipherView: CipherView = this.buildNewVaultItemCipherView({
       login,
@@ -2289,13 +2433,19 @@ export class OverlayBackground implements OverlayBackgroundInterface {
 
     try {
       this.closeInlineMenu(sender);
-      await this.cipherService.setAddEditCipherInfo({
-        cipher: cipherView,
-        collectionIds: cipherView.collectionIds,
-      });
+      const activeUserId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
+      await this.cipherService.setAddEditCipherInfo(
+        {
+          cipher: cipherView,
+          collectionIds: cipherView.collectionIds,
+        },
+        activeUserId,
+      );
 
-      await this.openAddEditVaultItemPopout(sender.tab, { cipherId: cipherView.id });
-      await BrowserApi.sendMessage("inlineAutofillMenuRefreshAddEditCipher");
+      await this.openAddEditVaultItemPopout(sender.tab, {
+        cipherId: cipherView.id,
+        cipherType: addNewCipherType,
+      });
     } catch (error) {
       this.logService.error("Error building cipher and opening add/edit vault item popout", error);
     }
@@ -2890,7 +3040,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     }
 
     const focusFieldShouldShowPasswordGenerator =
-      this.focusedFieldMatchesFillType(InlineMenuFillType.PasswordGeneration) ||
+      this.focusedFieldMatchesFillType(InlineMenuFillTypes.PasswordGeneration) ||
       (showInlineMenuAccountCreation &&
         this.focusedFieldMatchesAccountCreationType(InlineMenuAccountCreationFieldType.Password));
     if (!focusFieldShouldShowPasswordGenerator) {

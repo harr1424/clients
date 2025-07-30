@@ -1,6 +1,5 @@
 import { TestBed } from "@angular/core/testing";
 import { MockProxy, mock } from "jest-mock-extended";
-import { of } from "rxjs";
 
 import { DefaultLoginComponentService } from "@bitwarden/auth/angular";
 import { PolicyApiServiceAbstraction } from "@bitwarden/common/admin-console/abstractions/policy/policy-api.service.abstraction";
@@ -8,15 +7,22 @@ import { InternalPolicyService } from "@bitwarden/common/admin-console/abstracti
 import { MasterPasswordPolicyOptions } from "@bitwarden/common/admin-console/models/domain/master-password-policy-options";
 import { Policy } from "@bitwarden/common/admin-console/models/domain/policy";
 import { ResetPasswordPolicyOptions } from "@bitwarden/common/admin-console/models/domain/reset-password-policy-options";
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { SsoLoginServiceAbstraction } from "@bitwarden/common/auth/abstractions/sso-login.service.abstraction";
-import { CryptoFunctionService } from "@bitwarden/common/platform/abstractions/crypto-function.service";
+import { OrganizationInviteService } from "@bitwarden/common/auth/services/organization-invite/organization-invite.service";
+import { CryptoFunctionService } from "@bitwarden/common/key-management/crypto/abstractions/crypto-function.service";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { EnvironmentService } from "@bitwarden/common/platform/abstractions/environment.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
+import { Utils } from "@bitwarden/common/platform/misc/utils";
+import { FakeAccountService, mockAccountServiceWith } from "@bitwarden/common/spec";
+import { UserId } from "@bitwarden/common/types/guid";
 import { PasswordGenerationServiceAbstraction } from "@bitwarden/generator-legacy";
 
+// FIXME: remove `src` and fix import
+// eslint-disable-next-line no-restricted-imports
 import { RouterService } from "../../../../../../../../apps/web/src/app/core";
-import { AcceptOrganizationInviteService } from "../../../organization-invite/accept-organization.service";
 
 import { WebLoginComponentService } from "./web-login-component.service";
 
@@ -26,7 +32,7 @@ jest.mock("../../../../../utils/flags", () => ({
 
 describe("WebLoginComponentService", () => {
   let service: WebLoginComponentService;
-  let acceptOrganizationInviteService: MockProxy<AcceptOrganizationInviteService>;
+  let organizationInviteService: MockProxy<OrganizationInviteService>;
   let logService: MockProxy<LogService>;
   let policyApiService: MockProxy<PolicyApiServiceAbstraction>;
   let internalPolicyService: MockProxy<InternalPolicyService>;
@@ -36,9 +42,12 @@ describe("WebLoginComponentService", () => {
   let passwordGenerationService: MockProxy<PasswordGenerationServiceAbstraction>;
   let platformUtilsService: MockProxy<PlatformUtilsService>;
   let ssoLoginService: MockProxy<SsoLoginServiceAbstraction>;
+  const mockUserId = Utils.newGuid() as UserId;
+  let accountService: FakeAccountService;
+  let configService: MockProxy<ConfigService>;
 
   beforeEach(() => {
-    acceptOrganizationInviteService = mock<AcceptOrganizationInviteService>();
+    organizationInviteService = mock<OrganizationInviteService>();
     logService = mock<LogService>();
     policyApiService = mock<PolicyApiServiceAbstraction>();
     internalPolicyService = mock<InternalPolicyService>();
@@ -48,12 +57,14 @@ describe("WebLoginComponentService", () => {
     passwordGenerationService = mock<PasswordGenerationServiceAbstraction>();
     platformUtilsService = mock<PlatformUtilsService>();
     ssoLoginService = mock<SsoLoginServiceAbstraction>();
+    accountService = mockAccountServiceWith(mockUserId);
+    configService = mock<ConfigService>();
 
     TestBed.configureTestingModule({
       providers: [
         WebLoginComponentService,
         { provide: DefaultLoginComponentService, useClass: WebLoginComponentService },
-        { provide: AcceptOrganizationInviteService, useValue: acceptOrganizationInviteService },
+        { provide: OrganizationInviteService, useValue: organizationInviteService },
         { provide: LogService, useValue: logService },
         { provide: PolicyApiServiceAbstraction, useValue: policyApiService },
         { provide: InternalPolicyService, useValue: internalPolicyService },
@@ -63,6 +74,8 @@ describe("WebLoginComponentService", () => {
         { provide: PasswordGenerationServiceAbstraction, useValue: passwordGenerationService },
         { provide: PlatformUtilsService, useValue: platformUtilsService },
         { provide: SsoLoginServiceAbstraction, useValue: ssoLoginService },
+        { provide: AccountService, useValue: accountService },
+        { provide: ConfigService, useValue: configService },
       ],
     });
     service = TestBed.inject(WebLoginComponentService);
@@ -72,16 +85,16 @@ describe("WebLoginComponentService", () => {
     expect(service).toBeTruthy();
   });
 
-  describe("getOrgPolicies", () => {
+  describe("getOrgPoliciesFromOrgInvite", () => {
     it("returns undefined if organization invite is null", async () => {
-      acceptOrganizationInviteService.getOrganizationInvite.mockResolvedValue(null);
-      const result = await service.getOrgPolicies();
+      organizationInviteService.getOrganizationInvite.mockResolvedValue(null);
+      const result = await service.getOrgPoliciesFromOrgInvite();
       expect(result).toBeUndefined();
     });
 
     it("logs an error if getPoliciesByToken throws an error", async () => {
       const error = new Error("Test error");
-      acceptOrganizationInviteService.getOrganizationInvite.mockResolvedValue({
+      organizationInviteService.getOrganizationInvite.mockResolvedValue({
         organizationId: "org-id",
         token: "token",
         email: "email",
@@ -92,7 +105,7 @@ describe("WebLoginComponentService", () => {
         organizationName: "org-name",
       });
       policyApiService.getPoliciesByToken.mockRejectedValue(error);
-      await service.getOrgPolicies();
+      await service.getOrgPoliciesFromOrgInvite();
       expect(logService.error).toHaveBeenCalledWith(error);
     });
 
@@ -107,7 +120,7 @@ describe("WebLoginComponentService", () => {
         const resetPasswordPolicyOptions = new ResetPasswordPolicyOptions();
         resetPasswordPolicyOptions.autoEnrollEnabled = autoEnrollEnabled;
 
-        acceptOrganizationInviteService.getOrganizationInvite.mockResolvedValue({
+        organizationInviteService.getOrganizationInvite.mockResolvedValue({
           organizationId: "org-id",
           token: "token",
           email: "email",
@@ -124,11 +137,11 @@ describe("WebLoginComponentService", () => {
           resetPasswordPolicyEnabled,
         ]);
 
-        internalPolicyService.masterPasswordPolicyOptions$.mockReturnValue(
-          of(masterPasswordPolicyOptions),
+        internalPolicyService.combinePoliciesIntoMasterPasswordPolicyOptions.mockReturnValue(
+          masterPasswordPolicyOptions,
         );
 
-        const result = await service.getOrgPolicies();
+        const result = await service.getOrgPoliciesFromOrgInvite();
 
         expect(result).toEqual({
           policies: policies,

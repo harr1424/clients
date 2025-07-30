@@ -4,28 +4,29 @@ import { By } from "@angular/platform-browser";
 import { mock } from "jest-mock-extended";
 import { of } from "rxjs";
 
-import { SharedModule } from "@bitwarden/components/src/shared";
-import {
-  IntegrationCardComponent,
-  IntegrationGridComponent,
-} from "@bitwarden/web-vault/app/shared";
+import {} from "@bitwarden/web-vault/app/shared";
 
-import { SYSTEM_THEME_OBSERVABLE } from "../../../../../../libs/angular/src/services/injection-tokens";
-import { I18nService } from "../../../../../../libs/common/src/platform/abstractions/i18n.service";
-import { ThemeType } from "../../../../../../libs/common/src/platform/enums";
-import { ThemeStateService } from "../../../../../../libs/common/src/platform/theming/theme-state.service";
+import { JslibModule } from "@bitwarden/angular/jslib.module";
+import { SYSTEM_THEME_OBSERVABLE } from "@bitwarden/angular/services/injection-tokens";
+import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { ThemeType } from "@bitwarden/common/platform/enums";
+import { ThemeStateService } from "@bitwarden/common/platform/theming/theme-state.service";
+import { IntegrationCardComponent } from "@bitwarden/web-vault/app/admin-console/organizations/shared/components/integrations/integration-card/integration-card.component";
+import { IntegrationGridComponent } from "@bitwarden/web-vault/app/admin-console/organizations/shared/components/integrations/integration-grid/integration-grid.component";
 
 import { IntegrationsComponent } from "./integrations.component";
 
 @Component({
   selector: "app-header",
   template: "<div></div>",
+  standalone: false,
 })
 class MockHeaderComponent {}
 
 @Component({
   selector: "sm-new-menu",
   template: "<div></div>",
+  standalone: false,
 })
 class MockNewMenuComponent {}
 
@@ -35,7 +36,7 @@ describe("IntegrationsComponent", () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [IntegrationsComponent, MockHeaderComponent, MockNewMenuComponent],
-      imports: [IntegrationGridComponent, IntegrationCardComponent, SharedModule],
+      imports: [JslibModule, IntegrationGridComponent, IntegrationCardComponent],
       providers: [
         {
           provide: I18nService,

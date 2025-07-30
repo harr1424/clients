@@ -103,6 +103,7 @@ export function createChromeTabMock(customFields = {}): chrome.tabs.Tab {
     selected: true,
     discarded: false,
     autoDiscardable: false,
+    frozen: false,
     groupId: 2,
     url: "https://jest-testing-website.com",
     ...customFields,
@@ -241,7 +242,7 @@ export function createInitAutofillInlineMenuListMessageMock(
       createAutofillOverlayCipherDataMock(4, {
         icon: { imageEnabled: false, image: "", fallbackImage: "", icon: "" },
       }),
-      createAutofillOverlayCipherDataMock(5, { login: { totp: "123456", totpField: true } }),
+      createAutofillOverlayCipherDataMock(5),
       createAutofillOverlayCipherDataMock(6),
       createAutofillOverlayCipherDataMock(7),
       createAutofillOverlayCipherDataMock(8),

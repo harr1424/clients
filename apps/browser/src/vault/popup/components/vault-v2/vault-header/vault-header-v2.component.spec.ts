@@ -7,7 +7,6 @@ import { mock } from "jest-mock-extended";
 import { BehaviorSubject, Subject } from "rxjs";
 
 import { CollectionService } from "@bitwarden/admin-console/common";
-import { SearchService } from "@bitwarden/common/abstractions/search.service";
 import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
 import { PolicyService } from "@bitwarden/common/admin-console/abstractions/policy/policy.service.abstraction";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
@@ -19,6 +18,7 @@ import { StateProvider } from "@bitwarden/common/platform/state";
 import { SyncService } from "@bitwarden/common/platform/sync";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { FolderService } from "@bitwarden/common/vault/abstractions/folder/folder.service.abstraction";
+import { SearchService } from "@bitwarden/common/vault/abstractions/search.service";
 import { VaultSettingsService } from "@bitwarden/common/vault/abstractions/vault-settings/vault-settings.service";
 import { PasswordRepromptService } from "@bitwarden/vault";
 
@@ -59,7 +59,9 @@ describe("VaultHeaderV2Component", () => {
       providers: [
         {
           provide: CipherService,
-          useValue: mock<CipherService>({ cipherViews$: new BehaviorSubject([]) }),
+          useValue: mock<CipherService>({
+            cipherViews$: jest.fn().mockReturnValue(new BehaviorSubject([])),
+          }),
         },
         { provide: VaultSettingsService, useValue: mock<VaultSettingsService>() },
         { provide: FolderService, useValue: mock<FolderService>() },
@@ -75,7 +77,7 @@ describe("VaultHeaderV2Component", () => {
         { provide: LogService, useValue: mock<LogService>() },
         {
           provide: VaultPopupItemsService,
-          useValue: mock<VaultPopupItemsService>({ latestSearchText$: new BehaviorSubject("") }),
+          useValue: mock<VaultPopupItemsService>({ searchText$: new BehaviorSubject("") }),
         },
         {
           provide: SyncService,
@@ -152,7 +154,7 @@ describe("VaultHeaderV2Component", () => {
   it("defaults the initial state to true", (done) => {
     // The initial value of the `state$` variable above is undefined
     component["initialDisclosureVisibility$"].subscribe((initialVisibility) => {
-      expect(initialVisibility).toBeTrue();
+      expect(initialVisibility).toBe(true);
       done();
     });
 
