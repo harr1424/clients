@@ -8,6 +8,9 @@ import {
   CollectionService,
   CollectionWithIdRequest,
   CollectionView,
+  CollectionData,
+  CollectionDetailsResponse,
+  Collection,
 } from "@bitwarden/admin-console/common";
 import { PinServiceAbstraction } from "@bitwarden/auth/common";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
@@ -497,7 +500,12 @@ export class ImportService implements ImportServiceAbstraction {
       const collections: CollectionView[] = [...importResult.collections];
       importResult.collections = [importTarget as CollectionView];
       collections.map((x) => {
-        const f = structuredClone(x);
+        const cd = new CollectionData(
+          new CollectionDetailsResponse({
+            ...x,
+          }),
+        );
+        const f = new CollectionView(new Collection(cd), x.name);
         f.name = `${importTarget.name}/${x.name}`;
         importResult.collections.push(f);
       });

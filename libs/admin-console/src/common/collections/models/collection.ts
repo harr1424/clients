@@ -14,7 +14,7 @@ export const CollectionTypes = {
 export type CollectionType = (typeof CollectionTypes)[keyof typeof CollectionTypes];
 
 export class Collection extends Domain {
-  id: CollectionId;
+  id: CollectionId | undefined;
   organizationId: string;
   name: EncString;
   externalId: string | undefined;
@@ -25,7 +25,7 @@ export class Collection extends Domain {
 
   constructor(obj: CollectionData) {
     super();
-    if (obj == null || obj.name == null || obj.organizationId == null || obj.id == null) {
+    if (obj == null || obj.name == null || obj.organizationId == null) {
       throw new Error("CollectionData must contain name and organizationId.");
     }
 

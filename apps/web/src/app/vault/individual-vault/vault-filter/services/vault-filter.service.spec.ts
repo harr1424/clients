@@ -8,6 +8,9 @@ import { mock, MockProxy } from "jest-mock-extended";
 import { firstValueFrom, of, ReplaySubject } from "rxjs";
 
 import {
+  Collection,
+  CollectionData,
+  CollectionDetailsResponse,
   CollectionService,
   CollectionType,
   CollectionTypes,
@@ -368,11 +371,15 @@ describe("vault filter service", () => {
     orgId: string,
     type?: CollectionType,
   ): CollectionView {
-    const collection = new CollectionView();
-    collection.id = id;
-    collection.name = name;
-    collection.organizationId = orgId;
-    collection.type = type || CollectionTypes.SharedCollection;
+    const cd = new CollectionData(
+      new CollectionDetailsResponse({
+        id,
+        name,
+        organizationId: orgId,
+        type: type ?? CollectionTypes.SharedCollection,
+      }),
+    );
+    const collection = new CollectionView(new Collection(cd), name);
     return collection;
   }
 });

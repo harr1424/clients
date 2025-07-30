@@ -7,6 +7,7 @@ import {
   CollectionView,
 } from "@bitwarden/admin-console/common";
 import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
+import { CollectionId } from "@bitwarden/common/types/guid";
 import { CipherType } from "@bitwarden/common/vault/enums";
 import { TreeNode } from "@bitwarden/common/vault/models/domain/tree-node";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
@@ -229,7 +230,9 @@ describe("VaultFilter", () => {
 
       it("should return false when filtering by All Collections", () => {
         const filterFunction = createFilterFunction({
-          selectedCollectionNode: createCollectionFilterNode({ id: "AllCollections" }),
+          selectedCollectionNode: createCollectionFilterNode({
+            id: "AllCollections" as CollectionId,
+          }),
         });
 
         const result = filterFunction(cipher);
@@ -314,9 +317,15 @@ function createFolderFilterNode(options: Partial<FolderFilter>): TreeNode<Folder
 function createCollectionFilterNode(
   options: Partial<CollectionFilter>,
 ): TreeNode<CollectionFilter> {
-  const cd = new CollectionData(new CollectionDetailsResponse(options));
+  const cd = new CollectionData(
+    new CollectionDetailsResponse({
+      ...options,
+      name: options.name ?? "Test Name",
+      organizationId: options.organizationId ?? "Org Id",
+    }),
+  );
   const collection = new CollectionView(new Collection(cd), options.name) as CollectionFilter;
-  return new TreeNode<CollectionFilter>(collection, null);
+  return new TreeNode<CollectionFilter>(collection, {} as TreeNode<CollectionFilter>);
 }
 
 function createCipher(options: Partial<CipherView> = {}) {

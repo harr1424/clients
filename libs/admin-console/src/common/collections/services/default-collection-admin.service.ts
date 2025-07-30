@@ -152,7 +152,7 @@ export class DefaultCollectionAdminService implements CollectionAdminService {
 
     const cd = new CollectionData(
       new CollectionDetailsResponse({
-        externalId: model.externalId,
+        ...model,
         name: (await this.encryptService.encryptString(model.name, key)).encryptedString,
         groups: model.groups.map(
           (group) =>

@@ -23,7 +23,7 @@ export class CollectionData {
     this.readOnly = response.readOnly;
     this.manage = response.manage;
     this.hidePasswords = response.hidePasswords;
-    this.type = response.type;
+    this.type = response.type ?? CollectionTypes.SharedCollection;
   }
 
   static fromJSON(obj: Jsonify<CollectionData | null>): CollectionData | null {

@@ -1,7 +1,11 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import {
+  Collection,
+  CollectionAccessDetailsResponse,
   CollectionAdminView,
+  CollectionData,
+  CollectionDetailsResponse,
   CollectionView,
   NestingDelimiter,
 } from "@bitwarden/admin-console/common";
@@ -22,9 +26,9 @@ export function getNestedCollectionTree(
   // Collections need to be cloned because ServiceUtils.nestedTraverse actively
   // modifies the names of collections.
   // These changes risk affecting collections store in StateService.
-  const clonedCollections = structuredClone(collections).sort((a, b) =>
-    a.name.localeCompare(b.name),
-  );
+  const clonedCollections: CollectionView[] | CollectionAdminView[] = collections
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(cloneCollection);
 
   const nodes: TreeNode<CollectionView | CollectionAdminView>[] = [];
   clonedCollections.forEach((collection) => {
@@ -35,6 +39,22 @@ export function getNestedCollectionTree(
     ServiceUtils.nestedTraverse(nodes, 0, parts, collection, null, NestingDelimiter);
   });
   return nodes;
+}
+
+function cloneCollection(collection: CollectionView): CollectionView;
+function cloneCollection(collection: CollectionAdminView): CollectionAdminView;
+function cloneCollection(
+  collection: CollectionView | CollectionAdminView,
+): CollectionView | CollectionAdminView {
+  let cloned;
+
+  if (collection instanceof CollectionAdminView) {
+    cloned = new CollectionAdminView(new CollectionAccessDetailsResponse({ ...collection }));
+  } else {
+    const cd = new CollectionData(new CollectionDetailsResponse({ ...collection }));
+    cloned = new CollectionView(new Collection(cd), collection.name);
+  }
+  return cloned;
 }
 
 export function getFlatCollectionTree(

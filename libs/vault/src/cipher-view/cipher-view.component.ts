@@ -1,6 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { Component, Input, OnChanges, OnDestroy } from "@angular/core";
-import { firstValueFrom, Observable, Subject, takeUntil } from "rxjs";
+import { firstValueFrom, map, Observable, Subject, takeUntil } from "rxjs";
 
 // This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
 // eslint-disable-next-line no-restricted-imports
@@ -16,8 +16,7 @@ import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { isCardExpired } from "@bitwarden/common/autofill/utils";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
-import { getByIds } from "@bitwarden/common/platform/misc";
-import { CipherId, EmergencyAccessId, UserId } from "@bitwarden/common/types/guid";
+import { CipherId, CollectionId, EmergencyAccessId, UserId } from "@bitwarden/common/types/guid";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { FolderService } from "@bitwarden/common/vault/abstractions/folder/folder.service.abstraction";
 import { CipherType } from "@bitwarden/common/vault/enums";
@@ -139,6 +138,8 @@ export class CipherViewComponent implements OnChanges, OnDestroy {
     return !!this.cipher?.sshKey?.privateKey;
   }
 
+  getByIds(collectionViews: CollectionView[], ids: CollectionId[]) {}
+
   async loadCipherData() {
     if (!this.cipher) {
       return;
@@ -153,9 +154,15 @@ export class CipherViewComponent implements OnChanges, OnDestroy {
       (!this.collections || this.collections.length === 0)
     ) {
       this.collections = await firstValueFrom(
-        this.collectionService
-          .decryptedCollections$(userId)
-          .pipe(getByIds(this.cipher.collectionIds)),
+        this.collectionService.decryptedCollections$(userId).pipe(
+          map((collections) => {
+            if (this.cipher == null || this.cipher.collectionIds.find((id) => id == null)) {
+              throw new Error("Cannot get null Id.");
+            }
+            const ids = new Set(this.cipher.collectionIds);
+            return collections.filter((c) => c.id && ids.has(c.id));
+          }),
+        ),
       );
     }
 

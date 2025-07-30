@@ -17,7 +17,7 @@ import { CollectionId, OrganizationId, UserId } from "@bitwarden/common/types/gu
 import { OrgKey } from "@bitwarden/common/types/key";
 import { KeyService } from "@bitwarden/key-management";
 
-import { CollectionData, CollectionView } from "../models";
+import { Collection, CollectionData, CollectionView } from "../models";
 
 import { DECRYPTED_COLLECTION_DATA_KEY, ENCRYPTED_COLLECTION_DATA_KEY } from "./collection.state";
 import { DefaultCollectionService } from "./default-collection.service";
@@ -390,9 +390,8 @@ const collectionDataFactory = (orgId?: OrganizationId) => {
 };
 
 function collectionViewDataFactory(orgId?: OrganizationId): CollectionView {
-  const collectionView = new CollectionView();
-  collectionView.id = Utils.newGuid() as CollectionId;
-  collectionView.organizationId = orgId ?? (Utils.newGuid() as OrganizationId);
+  const cd = collectionDataFactory(orgId);
+  const collectionView = new CollectionView(new Collection(cd), cd.name);
   collectionView.name = "DEC_NAME_" + collectionView.id;
   return collectionView;
 }

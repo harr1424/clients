@@ -2,7 +2,13 @@ import { mock, MockProxy } from "jest-mock-extended";
 
 // This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
 // eslint-disable-next-line no-restricted-imports
-import { CollectionService, CollectionView } from "@bitwarden/admin-console/common";
+import {
+  Collection,
+  CollectionData,
+  CollectionDetailsResponse,
+  CollectionService,
+  CollectionView,
+} from "@bitwarden/admin-console/common";
 import { PinServiceAbstraction } from "@bitwarden/auth/common";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
@@ -145,20 +151,38 @@ describe("ImportService", () => {
       );
     });
 
-    const mockImportTargetCollection = new CollectionView();
-    mockImportTargetCollection.id = "myImportTarget" as CollectionId;
-    mockImportTargetCollection.name = "myImportTarget";
-    mockImportTargetCollection.organizationId = organizationId;
+    const mockName = "myImportTarget";
+    const mockId = "myImportTarget" as CollectionId;
+    const mockCd = new CollectionData(
+      new CollectionDetailsResponse({
+        id: mockId,
+        name: mockName,
+        organizationId,
+      }),
+    );
+    const mockImportTargetCollection = new CollectionView(new Collection(mockCd), mockName);
 
-    const mockCollection1 = new CollectionView();
-    mockCollection1.id = "collection1" as CollectionId;
-    mockCollection1.name = "collection1";
-    mockCollection1.organizationId = organizationId;
+    const mockName1 = "collection1";
+    const mockId1 = "collection1" as CollectionId;
+    const mockCd1 = new CollectionData(
+      new CollectionDetailsResponse({
+        id: mockId1,
+        name: mockName1,
+        organizationId,
+      }),
+    );
+    const mockCollection1 = new CollectionView(new Collection(mockCd1), mockName1);
 
-    const mockCollection2 = new CollectionView();
-    mockCollection1.id = "collection2" as CollectionId;
-    mockCollection1.name = "collection2";
-    mockCollection1.organizationId = organizationId;
+    const mockName2 = "collection2";
+    const mockId2 = "collection2" as CollectionId;
+    const mockCd2 = new CollectionData(
+      new CollectionDetailsResponse({
+        id: mockId2,
+        name: mockName2,
+        organizationId,
+      }),
+    );
+    const mockCollection2 = new CollectionView(new Collection(mockCd2), mockName2);
 
     it("passing importTarget adds it to collections", async () => {
       await importService["setImportTarget"](

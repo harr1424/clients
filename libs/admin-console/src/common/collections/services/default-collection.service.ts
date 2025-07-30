@@ -42,9 +42,7 @@ export class DefaultCollectionService implements CollectionService {
   /**
    * @returns a SingleUserState for encrypted collection data.
    */
-  private encryptedState(
-    userId: UserId,
-  ): SingleUserState<Record<CollectionId, CollectionData | null>> {
+  private encryptedState(userId: UserId): SingleUserState<Record<CollectionId, CollectionData>> {
     return this.stateProvider.getUser(userId, ENCRYPTED_COLLECTION_DATA_KEY);
   }
 
@@ -62,12 +60,7 @@ export class DefaultCollectionService implements CollectionService {
           return null;
         }
 
-        return Object.values(collections).map((c) => {
-          if (c == null) {
-            throw new Error("No collection data was found.");
-          }
-          return new Collection(c);
-        });
+        return Object.values(collections).map((c) => new Collection(c));
       }),
     );
   }
@@ -184,10 +177,6 @@ export class DefaultCollectionService implements CollectionService {
   }
 
   async encrypt(model: CollectionView, userId: UserId): Promise<Collection> {
-    if (model.organizationId == null || model.name == null) {
-      throw new Error("Collection has no organization id or name.");
-    }
-
     const key = await firstValueFrom(
       this.keyService.orgKeys$(userId).pipe(
         filter((orgKeys) => !!orgKeys),
@@ -198,6 +187,7 @@ export class DefaultCollectionService implements CollectionService {
     const encryptedName = await this.encryptService.encryptString(model.name, key);
     const cd = new CollectionData(
       new CollectionDetailsResponse({
+        ...model,
         id: model.id,
         organizationId: model.organizationId as OrganizationId,
         readOnly: model.readOnly,
