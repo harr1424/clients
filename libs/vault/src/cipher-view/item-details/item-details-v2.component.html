@@ -6,7 +6,9 @@
         'tw-mb-2': allItems.length > 0,
       }"
     >
-      <app-vault-icon [cipher]="cipher()" [coloredIcon]="true"></app-vault-icon>
+      <div class="tw-size-9">
+        <app-vault-icon [cipher]="cipher()" [coloredIcon]="true"></app-vault-icon>
+      </div>
       <h2 bitTypography="h4" class="tw-ml-4 tw-mt-2" data-testid="item-name">
         {{ cipher().name }}
       </h2>

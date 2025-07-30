@@ -18,8 +18,9 @@
     <div
       *ngIf="!data.imageEnabled || !data.image || !imageLoaded()"
       [ngClass]="{
-        'tw-size-9 tw-flex tw-items-center tw-justify-center tw-bg-illustration-bg-primary tw-rounded-full':
-          coloredIcon(),
+        'tw-size-9 tw-flex tw-items-center tw-justify-center': coloredIcon(),
+        'tw-bg-illustration-bg-primary tw-rounded-full':
+          data.icon?.startsWith('bwi-') && coloredIcon(),
       }"
     >
       <i
