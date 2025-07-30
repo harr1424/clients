@@ -95,8 +95,8 @@ export class ExportComponent implements OnInit, OnDestroy, AfterViewInit {
    * Enables the hosting control to pass in an organizationId
    * If a organizationId is provided, the organization selection is disabled.
    */
-  @Input() set organizationId(value: OrganizationId | undefined) {
-    this._organizationId = value;
+  @Input() set organizationId(value: OrganizationId | string | undefined) {
+    this._organizationId = value as OrganizationId;
     getUserId(this.accountService.activeAccount$)
       .pipe(
         switchMap((userId) =>
@@ -134,11 +134,11 @@ export class ExportComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /**
    * Emits when the creation and download of the export-file have succeeded
-   * - Emits an null/empty string when exporting from an individual vault
+   * - Emits an undefined when exporting from an individual vault
    * - Emits the organizationId when exporting from an organizationl vault
    * */
   @Output()
-  onSuccessfulExport = new EventEmitter<string>();
+  onSuccessfulExport = new EventEmitter<OrganizationId | undefined>();
 
   @ViewChild(PasswordStrengthV2Component) passwordStrengthComponent: PasswordStrengthV2Component;
 
