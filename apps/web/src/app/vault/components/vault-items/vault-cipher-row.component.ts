@@ -9,10 +9,12 @@ import {
   Output,
   ViewChild,
 } from "@angular/core";
+import { firstValueFrom } from "rxjs";
 
 import { CollectionView } from "@bitwarden/admin-console/common";
 import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { VaultSettingsService } from "@bitwarden/common/vault/abstractions/vault-settings/vault-settings.service";
 import { CipherType } from "@bitwarden/common/vault/enums";
 import {
   CipherViewLike,
@@ -76,7 +78,10 @@ export class VaultCipherRowComponent<C extends CipherViewLike> implements OnInit
   ];
   protected organization?: Organization;
 
-  constructor(private i18nService: I18nService) {}
+  constructor(
+    private i18nService: I18nService,
+    private vaultSettingsService: VaultSettingsService,
+  ) {}
 
   /**
    * Lifecycle hook for component initialization.
@@ -304,8 +309,9 @@ export class VaultCipherRowComponent<C extends CipherViewLike> implements OnInit
   }
 
   @HostListener("contextmenu", ["$event"])
-  protected onRightClick(event: MouseEvent) {
-    if (!this.disabled) {
+  protected async onRightClick(event: MouseEvent) {
+    const enableContextMenu = await firstValueFrom(this.vaultSettingsService.enableContextMenu$);
+    if (!this.disabled && enableContextMenu) {
       this.menuTrigger.toggleMenuOnRightClick(event);
     }
   }

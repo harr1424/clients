@@ -1,10 +1,12 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { Component, EventEmitter, HostListener, Input, Output, ViewChild } from "@angular/core";
+import { firstValueFrom } from "rxjs";
 
 import { CollectionAdminView, Unassigned, CollectionView } from "@bitwarden/admin-console/common";
 import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { VaultSettingsService } from "@bitwarden/common/vault/abstractions/vault-settings/vault-settings.service";
 import { CipherViewLike } from "@bitwarden/common/vault/utils/cipher-view-like-utils";
 import { MenuTriggerForDirective } from "@bitwarden/components";
 
@@ -45,7 +47,10 @@ export class VaultCollectionRowComponent<C extends CipherViewLike> {
   @Input() checked: boolean;
   @Output() checkedToggled = new EventEmitter<void>();
 
-  constructor(private i18nService: I18nService) {}
+  constructor(
+    private i18nService: I18nService,
+    private vaultSettingsService: VaultSettingsService,
+  ) {}
 
   get collectionGroups() {
     if (!(this.collection instanceof CollectionAdminView)) {
@@ -110,8 +115,9 @@ export class VaultCollectionRowComponent<C extends CipherViewLike> {
   }
 
   @HostListener("contextmenu", ["$event"])
-  protected onRightClick(event: MouseEvent) {
-    if (!this.disabled) {
+  protected async onRightClick(event: MouseEvent) {
+    const enableContextMenu = await firstValueFrom(this.vaultSettingsService.enableContextMenu$);
+    if (!this.disabled && enableContextMenu) {
       this.menuTrigger.toggleMenuOnRightClick(event);
     }
   }
