@@ -65,7 +65,7 @@ export class DefaultChangeLoginPasswordService implements ChangeLoginPasswordSer
   private async fetchWellKnownChangePasswordUri(url: string): Promise<string | null> {
     const getChangePasswordUriRequest = await this.buildChangePasswordUriRequest(url);
 
-    const response = await this.apiService.nativeFetch(getChangePasswordUriRequest);
+    const response = await this.apiService.fetch(getChangePasswordUriRequest);
 
     if (!response.ok) {
       return null;

@@ -28,8 +28,8 @@ describe("DefaultChangeLoginPasswordService", () => {
   const showFavicons$ = new BehaviorSubject<boolean>(true);
 
   beforeEach(() => {
-    mockApiService.nativeFetch.mockClear();
-    mockApiService.nativeFetch.mockImplementation(() =>
+    mockApiService.fetch.mockClear();
+    mockApiService.fetch.mockImplementation(() =>
       Promise.resolve({ ok: true, json: () => Promise.resolve({ uri: null }) } as Response),
     );
 
@@ -92,7 +92,7 @@ describe("DefaultChangeLoginPasswordService", () => {
 
     await service.getChangePasswordUrl(cipher);
 
-    expect(mockApiService.nativeFetch).toHaveBeenCalledWith(
+    expect(mockApiService.fetch).toHaveBeenCalledWith(
       expect.objectContaining({
         url: "https://icons.bitwarden.com/change-password-uri?uri=https%3A%2F%2Fexample.com%2F",
       }),
@@ -100,7 +100,7 @@ describe("DefaultChangeLoginPasswordService", () => {
   });
 
   it("should return the original URI when unable to verify the response", async () => {
-    mockApiService.nativeFetch.mockImplementation(() =>
+    mockApiService.fetch.mockImplementation(() =>
       Promise.resolve({ ok: true, json: () => Promise.resolve({ uri: null }) } as Response),
     );
 
@@ -117,7 +117,7 @@ describe("DefaultChangeLoginPasswordService", () => {
   });
 
   it("should return the well known change url from the response", async () => {
-    mockApiService.nativeFetch.mockImplementation(() => {
+    mockApiService.fetch.mockImplementation(() => {
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve({ uri: "https://example.com/.well-known/change-password" }),
@@ -137,7 +137,7 @@ describe("DefaultChangeLoginPasswordService", () => {
   });
 
   it("should try the next URI if the first one fails", async () => {
-    mockApiService.nativeFetch.mockImplementation((request) => {
+    mockApiService.fetch.mockImplementation((request) => {
       if (request.url.includes("no-wellknown.com")) {
         return Promise.resolve({
           ok: true,
@@ -180,6 +180,6 @@ describe("DefaultChangeLoginPasswordService", () => {
     const url = await service.getChangePasswordUrl(cipher);
 
     expect(url).toBe("https://example.com/");
-    expect(mockApiService.nativeFetch).not.toHaveBeenCalled();
+    expect(mockApiService.fetch).not.toHaveBeenCalled();
   });
 });
