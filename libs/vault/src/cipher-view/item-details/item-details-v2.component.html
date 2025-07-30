@@ -6,7 +6,7 @@
         'tw-mb-2': allItems.length > 0,
       }"
     >
-      <div class="tw-size-9">
+      <div class="tw-size-10 tw-flex tw-items-center tw-justify-center">
         <app-vault-icon [cipher]="cipher()" [coloredIcon]="true"></app-vault-icon>
       </div>
       <h2 bitTypography="h4" class="tw-ml-4 tw-mt-2" data-testid="item-name">
@@ -14,7 +14,7 @@
       </h2>
     </div>
     <ng-container>
-      <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-flex-wrap">
+      <div class="tw-flex tw-flex-col tw-mt-2 md:tw-flex-row md:tw-flex-wrap">
         @for (item of showItems(); track item.id; let last = $last) {
           <span
             class="tw-flex tw-items-center tw-mt-2 tw-mr-4"
