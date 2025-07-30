@@ -9,7 +9,7 @@ import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 import { ColorPasswordCountPipe } from "@bitwarden/angular/pipes/color-password-count.pipe";
 import { ColorPasswordPipe } from "@bitwarden/angular/pipes/color-password.pipe";
 import { CalloutModule, DialogModule } from "@bitwarden/components";
-import { AssignCollectionsComponent, PermitCipherDetailsPopoverComponent } from "@bitwarden/vault";
+import { AssignCollectionsComponent } from "@bitwarden/vault";
 
 import { DeleteAccountComponent } from "../auth/delete-account.component";
 import { LoginModule } from "../auth/login/login.module";
@@ -42,7 +42,6 @@ import { SharedModule } from "./shared/shared.module";
     NavComponent,
     AssignCollectionsComponent,
     VaultV2Component,
-    PermitCipherDetailsPopoverComponent,
   ],
   declarations: [
     AccountSwitcherComponent,
