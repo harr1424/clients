@@ -55,7 +55,7 @@
             </span>
           </span>
         }
-        @if (hasSmallScreen() && allItems().length > 2) {
+        @if (hasSmallScreen() && allItems().length > 2 && cipher().collectionIds.length > 1) {
           <button
             bitTypography="body2"
             type="button"
@@ -63,7 +63,7 @@
             linkType="primary"
             class="tw-mt-1.5"
             (click)="toggleShowMore()"
-            *ngIf="!showAllDetails"
+            *ngIf="!showAllDetails()"
           >
             {{ "showMore" | i18n }}
           </button>
@@ -74,7 +74,7 @@
             linkType="primary"
             class="tw-mt-1.5"
             (click)="toggleShowMore()"
-            *ngIf="showAllDetails"
+            *ngIf="showAllDetails()"
           >
             {{ "showLess" | i18n }}
           </button>

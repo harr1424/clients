@@ -71,7 +71,12 @@ export class ItemDetailsV2Component {
   });
 
   showItems = computed(() => {
-    if (this.hasSmallScreen() && this.allItems().length > 2 && !this.showAllDetails()) {
+    if (
+      this.hasSmallScreen() &&
+      this.allItems().length > 2 &&
+      !this.showAllDetails() &&
+      this.cipher().collectionIds?.length > 1
+    ) {
       return this.allItems().slice(0, 2);
     } else {
       return this.allItems();
