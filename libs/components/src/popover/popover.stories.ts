@@ -4,6 +4,7 @@ import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.servic
 
 import { ButtonModule } from "../button";
 import { IconButtonModule } from "../icon-button";
+import { LinkModule } from "../link";
 import { SharedModule } from "../shared/shared.module";
 import { I18nMockService } from "../utils/i18n-mock.service";
 
@@ -14,7 +15,7 @@ export default {
   title: "Component Library/Popover",
   decorators: [
     moduleMetadata({
-      imports: [PopoverModule, ButtonModule, IconButtonModule, SharedModule],
+      imports: [PopoverModule, ButtonModule, IconButtonModule, SharedModule, LinkModule],
       providers: [
         {
           provide: I18nService,
@@ -59,13 +60,13 @@ export default {
 
 type Story = StoryObj<PopoverTriggerForDirective>;
 
-const popoverContent = `
+const popoverContent = /*html*/ `
   <bit-popover [title]="'Example Title'" #myPopover>
-    <div>Lorem ipsum dolor <a href="#">adipisicing elit</a>.</div>
+    <div>Lorem ipsum dolor <a href="#" bitLink>adipisicing elit</a>.</div>
     <ul class="tw-mt-2 tw-mb-0 tw-ps-4">
       <li>Dolor sit amet consectetur</li>
       <li>Esse labore veniam tempora</li>
-      <li>Adipisicing elit ipsum <a href="#">iustolaborum</a></li>
+      <li>Adipisicing elit ipsum <a href="#" bitLink>iustolaborum</a></li>
     </ul>
     <button bitButton class="tw-mt-3" (click)="triggerRef.closePopover()">Close</button>
   </bit-popover>
@@ -74,7 +75,7 @@ const popoverContent = `
 export const Default: Story = {
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <div class="tw-mt-56">
         <button
           type="button"
@@ -82,6 +83,8 @@ export const Default: Story = {
           [bitPopoverTriggerFor]="myPopover"
           aria-label="Open popover"
           #triggerRef="popoverTrigger"
+          aria-label="Open popover"
+          title="Open popover"
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -94,13 +97,13 @@ export const Default: Story = {
 export const Open: Story = {
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <bit-popover [title]="'Example Title'" #myPopover="popoverComponent">
-        <div>Lorem ipsum dolor <a href="#">adipisicing elit</a>.</div>
+        <div>Lorem ipsum dolor <a href="#" bitLink>adipisicing elit</a>.</div>
         <ul class="tw-mt-2 tw-mb-0 tw-ps-4">
           <li>Dolor sit amet consectetur</li>
           <li>Esse labore veniam tempora</li>
-          <li>Adipisicing elit ipsum <a href="#">iustolaborum</a></li>
+          <li>Adipisicing elit ipsum <a href="#" bitLink>iustolaborum</a></li>
         </ul>
       </bit-popover>
 
@@ -116,13 +119,13 @@ export const Open: Story = {
 export const OpenLongTitle: Story = {
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <bit-popover [title]="'Example Title that is really long it wraps 2 lines'" #myPopover="popoverComponent">
-        <div>Lorem ipsum dolor <a href="#">adipisicing elit</a>.</div>
+        <div>Lorem ipsum dolor <a href="#" bitLink>adipisicing elit</a>.</div>
         <ul class="tw-mt-2 tw-mb-0 tw-ps-4">
           <li>Dolor sit amet consectetur</li>
           <li>Esse labore veniam tempora</li>
-          <li>Adipisicing elit ipsum <a href="#">iustolaborum</a></li>
+          <li>Adipisicing elit ipsum <a href="#" bitLink>iustolaborum</a></li>
         </ul>
       </bit-popover>
 
@@ -138,7 +141,7 @@ export const OpenLongTitle: Story = {
 export const InitiallyOpen: Story = {
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <div class="tw-mt-56">
         <button
           type="button"
@@ -147,6 +150,8 @@ export const InitiallyOpen: Story = {
           [popoverOpen]="true"
           aria-label="Open popover"
           #triggerRef="popoverTrigger"
+          aria-label="Open popover"
+          title="Open popover"
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -165,7 +170,7 @@ export const RightStart: Story = {
   },
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <div class="tw-mt-56">
         <button
           type="button"
@@ -174,6 +179,8 @@ export const RightStart: Story = {
           #triggerRef="popoverTrigger"
           aria-label="Open popover"
           [position]="'${args.position}'"
+          aria-label="Open popover"
+          title="Open popover"
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -189,7 +196,7 @@ export const RightCenter: Story = {
   },
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <div class="tw-mt-56">
         <button
           type="button"
@@ -198,6 +205,8 @@ export const RightCenter: Story = {
           #triggerRef="popoverTrigger"
           aria-label="Open popover"
           [position]="'${args.position}'"
+          aria-label="Open popover"
+          title="Open popover"
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -213,7 +222,7 @@ export const RightEnd: Story = {
   },
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <div class="tw-mt-56">
         <button
           type="button"
@@ -222,6 +231,8 @@ export const RightEnd: Story = {
           #triggerRef="popoverTrigger"
           aria-label="Open popover"
           [position]="'${args.position}'"
+          aria-label="Open popover"
+          title="Open popover"
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -237,7 +248,7 @@ export const LeftStart: Story = {
   },
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <div class="tw-mt-56 tw-flex tw-justify-end">
         <button
           type="button"
@@ -246,6 +257,8 @@ export const LeftStart: Story = {
           #triggerRef="popoverTrigger"
           aria-label="Open popover"
           [position]="'${args.position}'"
+          aria-label="Open popover"
+          title="Open popover"
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -261,7 +274,7 @@ export const LeftCenter: Story = {
   },
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <div class="tw-mt-56 tw-flex tw-justify-end">
         <button
           type="button"
@@ -270,6 +283,8 @@ export const LeftCenter: Story = {
           #triggerRef="popoverTrigger"
           aria-label="Open popover"
           [position]="'${args.position}'"
+          aria-label="Open popover"
+          title="Open popover"
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -284,7 +299,7 @@ export const LeftEnd: Story = {
   },
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <div class="tw-mt-56 tw-flex tw-justify-end">
         <button
           type="button"
@@ -293,6 +308,8 @@ export const LeftEnd: Story = {
           #triggerRef="popoverTrigger"
           aria-label="Open popover"
           [position]="'${args.position}'"
+          aria-label="Open popover"
+          title="Open popover"
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -308,7 +325,7 @@ export const BelowStart: Story = {
   },
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <div class="tw-mt-56 tw-flex tw-justify-center">
         <button
           type="button"
@@ -317,6 +334,8 @@ export const BelowStart: Story = {
           #triggerRef="popoverTrigger"
           aria-label="Open popover"
           [position]="'${args.position}'"
+          aria-label="Open popover"
+          title="Open popover"
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -332,7 +351,7 @@ export const BelowCenter: Story = {
   },
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <div class="tw-mt-56 tw-flex tw-justify-center">
         <button
           type="button"
@@ -341,6 +360,8 @@ export const BelowCenter: Story = {
           #triggerRef="popoverTrigger"
           aria-label="Open popover"
           [position]="'${args.position}'"
+          aria-label="Open popover"
+          title="Open popover"
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -356,7 +377,7 @@ export const BelowEnd: Story = {
   },
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <div class="tw-mt-56 tw-flex tw-justify-center">
         <button
           type="button"
@@ -365,6 +386,8 @@ export const BelowEnd: Story = {
           #triggerRef="popoverTrigger"
           aria-label="Open popover"
           [position]="'${args.position}'"
+          aria-label="Open popover"
+          title="Open popover"
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -380,7 +403,7 @@ export const AboveStart: Story = {
   },
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <div class="tw-mt-56 tw-flex tw-justify-center">
         <button
           type="button"
@@ -389,6 +412,8 @@ export const AboveStart: Story = {
           #triggerRef="popoverTrigger"
           aria-label="Open popover"
           [position]="'${args.position}'"
+          aria-label="Open popover"
+          title="Open popover"
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -404,7 +429,7 @@ export const AboveCenter: Story = {
   },
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <div class="tw-mt-56 tw-flex tw-justify-center">
         <button
           type="button"
@@ -413,6 +438,8 @@ export const AboveCenter: Story = {
           #triggerRef="popoverTrigger"
           aria-label="Open popover"
           [position]="'${args.position}'"
+          aria-label="Open popover"
+          title="Open popover"
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -428,7 +455,7 @@ export const AboveEnd: Story = {
   },
   render: (args) => ({
     props: args,
-    template: `
+    template: /*html*/ `
       <div class="tw-mt-56 tw-flex tw-justify-center">
         <button
           type="button"
@@ -437,6 +464,8 @@ export const AboveEnd: Story = {
           #triggerRef="popoverTrigger"
           aria-label="Open popover"
           [position]="'${args.position}'"
+          aria-label="Open popover"
+          title="Open popover"
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
