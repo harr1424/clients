@@ -418,13 +418,11 @@ describe("keyService", () => {
       const invalidUserIdTestCases = [
         { keySuffix: KeySuffixOptions.Auto, userId: null as unknown as UserId },
         { keySuffix: KeySuffixOptions.Auto, userId: undefined as unknown as UserId },
-        { keySuffix: KeySuffixOptions.Pin, userId: null as unknown as UserId },
-        { keySuffix: KeySuffixOptions.Pin, userId: undefined as unknown as UserId },
       ];
       test.each(invalidUserIdTestCases)(
         "throws when keySuffix is $keySuffix and userId is $userId",
         async ({ keySuffix, userId }) => {
-          await expect(keyService.clearStoredUserKey(keySuffix, userId)).rejects.toThrow(
+          await expect(keyService.clearStoredUserKey(userId)).rejects.toThrow(
             "UserId is required",
           );
         },
@@ -433,21 +431,12 @@ describe("keyService", () => {
 
     describe("with Auto key suffix", () => {
       it("UserKeyAutoUnlock is cleared and pin keys are not cleared", async () => {
-        await keyService.clearStoredUserKey(KeySuffixOptions.Auto, mockUserId);
+        await keyService.clearStoredUserKey(mockUserId);
 
         expect(stateService.setUserKeyAutoUnlock).toHaveBeenCalledWith(null, {
           userId: mockUserId,
         });
         expect(pinService.clearPinKeyEncryptedUserKeyEphemeral).not.toHaveBeenCalled();
-      });
-    });
-
-    describe("with PIN key suffix", () => {
-      it("pin keys are cleared and user key auto unlock not", async () => {
-        await keyService.clearStoredUserKey(KeySuffixOptions.Pin, mockUserId);
-
-        expect(stateService.setUserKeyAutoUnlock).not.toHaveBeenCalled();
-        expect(pinService.clearPinKeyEncryptedUserKeyEphemeral).toHaveBeenCalledWith(mockUserId);
       });
     });
   });

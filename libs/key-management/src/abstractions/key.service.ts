@@ -157,11 +157,10 @@ export abstract class KeyService {
   abstract makeUserKey(masterKey: MasterKey | null): Promise<[UserKey, EncString]>;
   /**
    * Clears the user's stored version of the user key
-   * @param keySuffix The desired version of the key to clear
    * @param userId The desired user
    * @throws Error when userId is null or undefined.
    */
-  abstract clearStoredUserKey(keySuffix: KeySuffixOptions, userId: string): Promise<void>;
+  abstract clearStoredUserKey(userId: string): Promise<void>;
   /**
    * Retrieves the user's master key if it is in state, or derives it from the provided password
    * @param password The user's master password that will be used to derive a master key if one isn't found
@@ -361,14 +360,6 @@ export abstract class KeyService {
    * @throws If the provided key is a null-ish value.
    */
   abstract makeKeyPair(key: SymmetricCryptoKey): Promise<[string, EncString]>;
-  /**
-   * Clears the user's pin keys from storage
-   * Note: This will remove the stored pin and as a result,
-   * disable pin protection for the user
-   * @param userId The desired user
-   * @throws Error when provided userId is null or undefined
-   */
-  abstract clearPinKeys(userId: UserId): Promise<void>;
   /**
    * @param keyMaterial The key material to derive the send key from
    * @returns A new send key

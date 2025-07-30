@@ -7,6 +7,7 @@ export type DeviceKey = Opaque<SymmetricCryptoKey, "DeviceKey">;
 export type PrfKey = Opaque<SymmetricCryptoKey, "PrfKey">;
 export type UserKey = Opaque<SymmetricCryptoKey, "UserKey">;
 export type MasterKey = Opaque<SymmetricCryptoKey, "MasterKey">;
+/** @deprecated */
 export type PinKey = Opaque<SymmetricCryptoKey, "PinKey">;
 export type OrgKey = Opaque<SymmetricCryptoKey, "OrgKey">;
 export type ProviderKey = Opaque<SymmetricCryptoKey, "ProviderKey">;
