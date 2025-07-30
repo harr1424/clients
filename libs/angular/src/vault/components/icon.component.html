@@ -1,8 +1,6 @@
 <div
   class="tw-flex tw-justify-center tw-items-center"
-  [ngClass]="{
-    'tw-size-10': coloredIcon(),
-  }"
+  [ngStyle]="coloredIcon() ? { width: '36px', height: '36px' } : {}"
   aria-hidden="true"
 >
   <ng-container *ngIf="data$ | async as data">
@@ -15,9 +13,9 @@
         loading="lazy"
         [ngClass]="{
           'tw-invisible tw-absolute': !imageLoaded(),
-          'tw-size-9': coloredIcon(),
           'tw-size-6': !coloredIcon(),
         }"
+        [ngStyle]="coloredIcon() ? { width: '36px', height: '36px' } : {}"
         (load)="imageLoaded.set(true)"
         (error)="imageLoaded.set(false)"
       />
@@ -25,10 +23,11 @@
     @if (!data.imageEnabled || !data.image || !imageLoaded()) {
       <div
         [ngClass]="{
-          'tw-size-10 tw-flex tw-items-center tw-justify-center': coloredIcon(),
+          'tw-flex tw-items-center tw-justify-center': coloredIcon(),
           'tw-bg-illustration-bg-primary tw-rounded-full':
             data.icon?.startsWith('bwi-') && coloredIcon(),
         }"
+        [ngStyle]="coloredIcon() ? { width: '36px', height: '36px' } : {}"
       >
         <i
           class="tw-text-muted bwi bwi-lg {{ data.icon }}"
