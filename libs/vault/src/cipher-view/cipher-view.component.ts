@@ -16,7 +16,7 @@ import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { isCardExpired } from "@bitwarden/common/autofill/utils";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
-import { CipherId, CollectionId, EmergencyAccessId, UserId } from "@bitwarden/common/types/guid";
+import { CipherId, EmergencyAccessId, UserId } from "@bitwarden/common/types/guid";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { FolderService } from "@bitwarden/common/vault/abstractions/folder/folder.service.abstraction";
 import { CipherType } from "@bitwarden/common/vault/enums";
@@ -137,8 +137,6 @@ export class CipherViewComponent implements OnChanges, OnDestroy {
   get hasSshKey() {
     return !!this.cipher?.sshKey?.privateKey;
   }
-
-  getByIds(collectionViews: CollectionView[], ids: CollectionId[]) {}
 
   async loadCipherData() {
     if (!this.cipher) {
