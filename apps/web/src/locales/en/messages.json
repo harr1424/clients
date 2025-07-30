@@ -2828,6 +2828,12 @@
       }
     }
   },
+  "showSummary": {
+    "message": "Show summary"
+  },
+  "hideSummary": {
+    "message": "Hide summary"
+  },
   "summary": {
     "message": "Summary"
   },
