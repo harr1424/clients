@@ -604,6 +604,7 @@ export class ServiceContainer {
       this.accountService,
       this.kdfConfigService,
       this.keyService,
+      this.configService,
       customUserAgent,
     );
 
