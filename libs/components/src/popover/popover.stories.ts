@@ -84,6 +84,7 @@ export const Default: Story = {
           #triggerRef="popoverTrigger"
           aria-label="Open popover"
           title="Open popover"
+          bitLink
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -121,11 +122,12 @@ export const OpenLongTitle: Story = {
     template: /*html*/ `
       <bit-popover [title]="'Example Title that is really long it wraps 2 lines'" #myPopover="popoverComponent">
         <div>Lorem ipsum dolor <a href="#" bitLink>adipisicing elit</a>.</div>
-        <ul class="tw-mt-2 tw-mb-0 tw-ps-4">
+        <ul class="tw-mt-2 tw-ps-4">
           <li>Dolor sit amet consectetur</li>
           <li>Esse labore veniam tempora</li>
           <li>Adipisicing elit ipsum <a href="#" bitLink>iustolaborum</a></li>
         </ul>
+        <p class="tw-mb-0">Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
       </bit-popover>
 
       <div class="tw-h-40">
@@ -150,6 +152,7 @@ export const InitiallyOpen: Story = {
           #triggerRef="popoverTrigger"
           aria-label="Open popover"
           title="Open popover"
+          bitLink
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -178,6 +181,7 @@ export const RightStart: Story = {
           [position]="'${args.position}'"
           aria-label="Open popover"
           title="Open popover"
+          bitLink
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -203,6 +207,7 @@ export const RightCenter: Story = {
           [position]="'${args.position}'"
           aria-label="Open popover"
           title="Open popover"
+          bitLink
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -228,6 +233,7 @@ export const RightEnd: Story = {
           [position]="'${args.position}'"
           aria-label="Open popover"
           title="Open popover"
+          bitLink
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -253,6 +259,7 @@ export const LeftStart: Story = {
           [position]="'${args.position}'"
           aria-label="Open popover"
           title="Open popover"
+          bitLink
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -278,6 +285,7 @@ export const LeftCenter: Story = {
           [position]="'${args.position}'"
           aria-label="Open popover"
           title="Open popover"
+          bitLink
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -302,6 +310,7 @@ export const LeftEnd: Story = {
           [position]="'${args.position}'"
           aria-label="Open popover"
           title="Open popover"
+          bitLink
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -327,6 +336,7 @@ export const BelowStart: Story = {
           [position]="'${args.position}'"
           aria-label="Open popover"
           title="Open popover"
+          bitLink
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -352,6 +362,7 @@ export const BelowCenter: Story = {
           [position]="'${args.position}'"
           aria-label="Open popover"
           title="Open popover"
+          bitLink
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -377,6 +388,7 @@ export const BelowEnd: Story = {
           [position]="'${args.position}'"
           aria-label="Open popover"
           title="Open popover"
+          bitLink
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -402,6 +414,7 @@ export const AboveStart: Story = {
           [position]="'${args.position}'"
           aria-label="Open popover"
           title="Open popover"
+          bitLink
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -427,6 +440,7 @@ export const AboveCenter: Story = {
           [position]="'${args.position}'"
           aria-label="Open popover"
           title="Open popover"
+          bitLink
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
@@ -452,6 +466,7 @@ export const AboveEnd: Story = {
           [position]="'${args.position}'"
           aria-label="Open popover"
           title="Open popover"
+          bitLink
         >
           <i class="bwi bwi-question-circle"></i>
         </button>
