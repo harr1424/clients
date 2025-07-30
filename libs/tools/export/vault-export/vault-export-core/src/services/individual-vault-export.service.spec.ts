@@ -166,8 +166,6 @@ function expectEqualFolders(folders: Folder[], jsonResult: string) {
 }
 
 describe("VaultExportService", () => {
-  const userId = "" as UserId;
-
   let exportService: IndividualVaultExportService;
   let cryptoFunctionService: MockProxy<CryptoFunctionService>;
   let cipherService: MockProxy<CipherService>;
@@ -281,7 +279,7 @@ describe("VaultExportService", () => {
     const testCiphers = [UserCipherViews[0], cardCipher, UserCipherViews[1]];
     cipherService.getAllDecrypted.mockResolvedValue(testCiphers);
 
-    const actual = await exportService.getExport("json");
+    const actual = await exportService.getExport(userId, "json");
     expect(typeof actual.data).toBe("string");
     const exportedData = actual as ExportedVaultAsString;
 
@@ -301,7 +299,7 @@ describe("VaultExportService", () => {
     const testCiphers = [UserCipherDomains[0], cardCipher, UserCipherDomains[1]];
     cipherService.getAll.mockResolvedValue(testCiphers);
 
-    const actual = await exportService.getExport("encrypted_json");
+    const actual = await exportService.getExport(userId, "encrypted_json");
     expect(typeof actual.data).toBe("string");
     const exportedData = actual as ExportedVaultAsString;
 
@@ -480,7 +478,7 @@ describe("VaultExportService", () => {
       });
 
       it("has a mac property", async () => {
-        encryptService.encrypt.mockResolvedValue(mac);
+        encryptService.encryptString.mockResolvedValue(mac);
         exportedVault = await exportService.getPasswordProtectedExport(userId, password);
         exportString = exportedVault.data;
         exportObject = JSON.parse(exportString);
@@ -489,7 +487,7 @@ describe("VaultExportService", () => {
       });
 
       it("has data property", async () => {
-        encryptService.encrypt.mockResolvedValue(data);
+        encryptService.encryptString.mockResolvedValue(data);
         exportedVault = await exportService.getPasswordProtectedExport(userId, password);
         exportString = exportedVault.data;
         exportObject = JSON.parse(exportString);
