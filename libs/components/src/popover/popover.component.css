@@ -1,5 +1,5 @@
 .bit-popover-arrow {
-  @apply tw-absolute tw-size-5 tw-rounded-md tw-z-10 tw-bg-primary-100 tw-shadow-lg;
+  @apply tw-absolute tw-size-5 tw-rounded-md tw-z-10 tw-bg-primary-100;
   clip-path: polygon(30% 00%, 100% 70%, 0% 100%);
 }
 
