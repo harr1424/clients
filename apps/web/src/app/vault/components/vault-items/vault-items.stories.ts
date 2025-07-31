@@ -12,9 +12,12 @@ import {
 import { BehaviorSubject, of } from "rxjs";
 
 import {
+  Collection,
   CollectionAccessDetailsResponse,
-  CollectionAccessSelectionView,
   CollectionAdminView,
+  CollectionData,
+  CollectionDetailsResponse,
+  CollectionView,
   Unassigned,
 } from "@bitwarden/admin-console/common";
 import { OrganizationUserType } from "@bitwarden/common/admin-console/enums";
@@ -328,28 +331,17 @@ function createCipherView(i: number, deleted = false): CipherView {
   return view;
 }
 
-function createCollectionView(i: number): CollectionAdminView {
+function createCollectionView(i: number): CollectionView {
   const organization = organizations[i % (organizations.length + 1)];
-  const group = groups[i % (groups.length + 1)];
-  const view = new CollectionAdminView(
-    new CollectionAccessDetailsResponse({
+  const cd = new CollectionData(
+    new CollectionDetailsResponse({
       id: `collection-${i}`,
       name: `Collection ${i}`,
       organizationId: organization?.id ?? "orgId",
       manage: true,
     }),
   );
-
-  if (group !== undefined) {
-    view.groups = [
-      new CollectionAccessSelectionView({
-        id: group.id,
-        hidePasswords: false,
-        readOnly: false,
-        manage: false,
-      }),
-    ];
-  }
+  const view = new CollectionView(new Collection(cd), `Collection ${i}`);
 
   return view;
 }
