@@ -376,7 +376,7 @@ describe("vault filter service", () => {
         id,
         name,
         organizationId: orgId,
-        type: type ?? CollectionTypes.SharedCollection,
+        type: type || CollectionTypes.SharedCollection,
       }),
     );
     const collection = new CollectionView(new Collection(cd), name);

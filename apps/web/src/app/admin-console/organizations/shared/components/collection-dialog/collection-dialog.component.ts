@@ -394,11 +394,12 @@ export class CollectionDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const parent = this.formGroup.controls.parent?.value;
     const collectionAccessDetailsRes = new CollectionAccessDetailsResponse({
       id: this.params.collectionId as CollectionId,
       externalId: this.formGroup.controls.externalId.value,
       organizationId: this.formGroup.controls.selectedOrg.value,
-      name: this.formGroup.controls.parent.value
+      name: parent
         ? `${parent}/${this.formGroup.controls.name.value}`
         : this.formGroup.controls.name.value,
       groups: this.formGroup.controls.access.value

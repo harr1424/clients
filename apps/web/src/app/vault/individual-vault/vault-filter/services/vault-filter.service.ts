@@ -12,7 +12,13 @@ import {
   switchMap,
 } from "rxjs";
 
-import { CollectionService, CollectionView } from "@bitwarden/admin-console/common";
+import {
+  Collection,
+  CollectionData,
+  CollectionDetailsResponse,
+  CollectionService,
+  CollectionView,
+} from "@bitwarden/admin-console/common";
 import { sortDefaultCollections } from "@bitwarden/angular/vault/vault-filter/services/vault-filter.service";
 import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
 import { PolicyService } from "@bitwarden/common/admin-console/abstractions/policy/policy.service.abstraction";
@@ -249,7 +255,12 @@ export class VaultFilterService implements VaultFilterServiceAbstraction {
     }
 
     collections.forEach((c) => {
-      const collectionCopy = structuredClone(c) as CollectionFilter;
+      const cd = new CollectionData(
+        new CollectionDetailsResponse({
+          ...c,
+        }),
+      );
+      const collectionCopy = new CollectionView(new Collection(cd), c.name) as CollectionFilter;
       const parts = c.name != null ? c.name.replace(/^\/+|\/+$/g, "").split(NestingDelimiter) : [];
       ServiceUtils.nestedTraverse(nodes, 0, parts, collectionCopy, null, NestingDelimiter);
     });
