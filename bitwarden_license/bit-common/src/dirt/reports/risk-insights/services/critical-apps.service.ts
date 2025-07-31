@@ -1,5 +1,6 @@
 import {
   BehaviorSubject,
+  filter,
   first,
   firstValueFrom,
   forkJoin,
@@ -13,10 +14,9 @@ import {
   zip,
 } from "rxjs";
 
-import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
 import { EncString } from "@bitwarden/common/key-management/crypto/models/enc-string";
-import { OrganizationId } from "@bitwarden/common/types/guid";
+import { OrganizationId, UserId } from "@bitwarden/common/types/guid";
 import { OrgKey } from "@bitwarden/common/types/key";
 import { KeyService } from "@bitwarden/key-management";
 
@@ -47,7 +47,6 @@ export class CriticalAppsService {
     private keyService: KeyService,
     private encryptService: EncryptService,
     private criticalAppsApiService: CriticalAppsApiService,
-    private accountService: AccountService,
   ) {}
 
   // Get a list of critical apps for a given organization
@@ -101,10 +100,11 @@ export class CriticalAppsService {
   }
 
   // Get the critical apps for a given organization
-  setOrganizationId(orgId: OrganizationId) {
+  setOrganizationId(orgId: OrganizationId, userId: UserId) {
     this.orgId.next(orgId);
-    this.orgKey$ = this.accountService.activeAccount$.pipe(
-      switchMap((account) => this.keyService.orgKeys$(account.id)),
+
+    this.orgKey$ = this.keyService.orgKeys$(userId).pipe(
+      filter((OrgKeys) => !!OrgKeys),
       map((organizationKeysById) => organizationKeysById[orgId as OrganizationId]),
     );
   }

@@ -2,13 +2,13 @@ import { randomUUID } from "crypto";
 
 import { fakeAsync, flush } from "@angular/core/testing";
 import { mock } from "jest-mock-extended";
-import { of } from "rxjs";
+import { of, ReplaySubject } from "rxjs";
 
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
 import { EncString } from "@bitwarden/common/key-management/crypto/models/enc-string";
 import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
 import { CsprngArray } from "@bitwarden/common/types/csprng";
-import { OrganizationId } from "@bitwarden/common/types/guid";
+import { UserId, OrganizationId } from "@bitwarden/common/types/guid";
 import { OrgKey } from "@bitwarden/common/types/key";
 import { KeyService } from "@bitwarden/key-management";
 
@@ -29,16 +29,16 @@ describe("CriticalAppsService", () => {
     saveCriticalApps: jest.fn(),
     getCriticalApps: jest.fn(),
   });
+  let cryptoKeys: ReplaySubject<Record<OrganizationId, OrgKey> | null>;
 
   beforeEach(() => {
+    cryptoKeys = new ReplaySubject<Record<OrganizationId, OrgKey> | null>(1);
+    keyService.orgKeys$.mockReturnValue(cryptoKeys);
+
     service = new CriticalAppsService(keyService, encryptService, criticalAppsApiService);
 
     // reset mocks
     jest.resetAllMocks();
-
-    const mockRandomBytes = new Uint8Array(64) as CsprngArray;
-    const mockOrgKey = new SymmetricCryptoKey(mockRandomBytes) as OrgKey;
-    keyService.getOrgKey.mockResolvedValue(mockOrgKey);
   });
 
   it("should be created", () => {
@@ -108,6 +108,7 @@ describe("CriticalAppsService", () => {
   });
 
   it("should get critical apps", fakeAsync(() => {
+    const userId = "user1" as UserId;
     const orgId = "org1" as OrganizationId;
     const response = [
       { id: "id1", organizationId: "org1", uri: "https://example.com" },
@@ -121,7 +122,7 @@ describe("CriticalAppsService", () => {
     const mockOrgKey = new SymmetricCryptoKey(mockRandomBytes) as OrgKey;
     keyService.getOrgKey.mockResolvedValue(mockOrgKey);
 
-    service.setOrganizationId(orgId as OrganizationId);
+    service.setOrganizationId(orgId as OrganizationId, userId as UserId);
     flush();
 
     expect(keyService.getOrgKey).toHaveBeenCalledWith(orgId.toString());
