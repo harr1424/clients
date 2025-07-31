@@ -50,7 +50,7 @@ export class PinService implements PinServiceAbstraction {
           } else if ((await this.getPinLockType(userId)) === "PERSISTENT") {
             // ----- ENCRYPTION MIGRATION -----
             // Pin-key encrypted user-keys are eagerly migrated to the new pin-protected user key envelope format.
-            if ((await this.getPinKeyEncryptedUserKeyPersistent(userId)) != null) {
+            if ((await this.getLegacyPinKeyEncryptedUserKeyPersistent(userId)) != null) {
               this.logService.info("[Pin Service] Migrating legacy PIN");
               const pin = await this.getPin(userId);
               await this.setPin(pin, "PERSISTENT", userId);
@@ -120,7 +120,7 @@ export class PinService implements PinServiceAbstraction {
     const isPersistentPinSet =
       (await this.getPinProtectedUserKeyPersistent(userId)) != null ||
       // Deprecated
-      (await this.getPinKeyEncryptedUserKeyPersistent(userId)) != null;
+      (await this.getLegacyPinKeyEncryptedUserKeyPersistent(userId)) != null;
     const isPinSet =
       (await firstValueFrom(this.stateProvider.getUserState$(USER_KEY_ENCRYPTED_PIN, userId))) !=
       null;
@@ -201,7 +201,7 @@ export class PinService implements PinServiceAbstraction {
     } else {
       // This branch is deprecated and will be removed in the future, but is kept for migration.
       try {
-        const pinKeyEncryptedUserKey = await this.getPinKeyEncryptedUserKeyPersistent(userId);
+        const pinKeyEncryptedUserKey = await this.getLegacyPinKeyEncryptedUserKeyPersistent(userId);
         const email = await firstValueFrom(
           this.accountService.accounts$.pipe(map((accounts) => accounts[userId].email)),
         );
@@ -289,7 +289,8 @@ export class PinService implements PinServiceAbstraction {
     return (await this.keyGenerationService.stretchKey(pinKey)) as PinKey;
   }
 
-  private async getPinKeyEncryptedUserKeyPersistent(
+  /** @deprecated */
+  private async getLegacyPinKeyEncryptedUserKeyPersistent(
     userId: UserId,
   ): Promise<EncryptedString | null> {
     assertNonNullish(userId, "userId");
