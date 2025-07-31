@@ -71,8 +71,11 @@ import { KdfConfig } from "./models/kdf-config";
 export class DefaultKeyService implements KeyServiceAbstraction {
   readonly activeUserOrgKeys$: Observable<Record<OrganizationId, OrgKey>>;
 
-  private unlockedUserKeysSubject = new BehaviorSubject<{ userId: UserId, userKey: UserKey }>(null);
-  readonly unlockedUserKeys$: Observable<{ userId: UserId, userKey: UserKey }>;
+  // null is fine as the initial value since the observable is filtered to only emit non-null values.
+  private unlockedUserKeysSubject = new BehaviorSubject<{ userId: UserId; userKey: UserKey }>(
+    null as any,
+  );
+  readonly unlockedUserKeys$: Observable<{ userId: UserId; userKey: UserKey }>;
 
   constructor(
     protected masterPasswordService: InternalMasterPasswordServiceAbstraction,
@@ -92,9 +95,9 @@ export class DefaultKeyService implements KeyServiceAbstraction {
       distinctUntilChanged(),
       shareReplay({ bufferSize: 1, refCount: false }),
     ) as Observable<Record<OrganizationId, OrgKey>>;
-    this.unlockedUserKeys$ = this.unlockedUserKeysSubject.asObservable().pipe(
-      filter((x) => x != null),
-    );
+    this.unlockedUserKeys$ = this.unlockedUserKeysSubject
+      .asObservable()
+      .pipe(filter((x) => x != null));
   }
 
   async setUserKey(key: UserKey, userId: UserId): Promise<void> {

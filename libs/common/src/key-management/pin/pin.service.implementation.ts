@@ -1,6 +1,4 @@
-// FIXME: Update this file to be type safe and remove this and next line
-// @ts-strict-ignore
-import { catchError, concatMap, EMPTY, firstValueFrom, map } from "rxjs";
+import { concatMap, firstValueFrom, map } from "rxjs";
 
 import { assertNonNullish } from "@bitwarden/common/auth/utils";
 import { SdkService } from "@bitwarden/common/platform/abstractions/sdk/sdk.service";
@@ -21,7 +19,12 @@ import { firstValueFromOrThrow } from "../utils";
 
 import { PinLockType } from "./pin-lock-type";
 import { PinServiceAbstraction } from "./pin.service.abstraction";
-import { PIN_KEY_ENCRYPTED_USER_KEY_PERSISTENT, PIN_PROTECTED_USER_KEY_ENVELOPE_EPHEMERAL, PIN_PROTECTED_USER_KEY_ENVELOPE_PERSISTENT, USER_KEY_ENCRYPTED_PIN } from "./pin.state";
+import {
+  PIN_KEY_ENCRYPTED_USER_KEY_PERSISTENT,
+  PIN_PROTECTED_USER_KEY_ENVELOPE_EPHEMERAL,
+  PIN_PROTECTED_USER_KEY_ENVELOPE_PERSISTENT,
+  USER_KEY_ENCRYPTED_PIN,
+} from "./pin.state";
 
 export class PinService implements PinServiceAbstraction {
   constructor(
@@ -34,23 +37,28 @@ export class PinService implements PinServiceAbstraction {
     private keyService: KeyService,
     private sdkService: SdkService,
   ) {
-    keyService.unlockedUserKeys$.pipe(
-      concatMap(async ({ userId }) => {
-        if ((await this.getPinLockType(userId) === "EPHEMERAL") && !(await this.isPinDecryptionAvailable(userId))) {
-          this.logService.info("[Pin Service] After first unlock; Setting up ephemeral PIN");
-          const pin = await this.getPin(userId);
-          await this.setPin(pin, "EPHEMERAL", userId);
-        } else if (await this.getPinLockType(userId) === "PERSISTENT") {
-          // ----- ENCRYPTION MIGRATION -----
-          // Pin-key encrypted user-keys are eagerly migrated to the new pin-protected user key envelope format.
-          if ((await this.getPinKeyEncryptedUserKeyPersistent(userId)) != null) {
-            this.logService.info("[Pin Service] Migrating legacy PIN");
+    keyService.unlockedUserKeys$
+      .pipe(
+        concatMap(async ({ userId }) => {
+          if (
+            (await this.getPinLockType(userId)) === "EPHEMERAL" &&
+            !(await this.isPinDecryptionAvailable(userId))
+          ) {
+            this.logService.info("[Pin Service] After first unlock; Setting up ephemeral PIN");
             const pin = await this.getPin(userId);
-            await this.setPin(pin, "PERSISTENT", userId);
+            await this.setPin(pin, "EPHEMERAL", userId);
+          } else if ((await this.getPinLockType(userId)) === "PERSISTENT") {
+            // ----- ENCRYPTION MIGRATION -----
+            // Pin-key encrypted user-keys are eagerly migrated to the new pin-protected user key envelope format.
+            if ((await this.getPinKeyEncryptedUserKeyPersistent(userId)) != null) {
+              this.logService.info("[Pin Service] Migrating legacy PIN");
+              const pin = await this.getPin(userId);
+              await this.setPin(pin, "PERSISTENT", userId);
+            }
           }
-        }
-      })
-    ).subscribe();
+        }),
+      )
+      .subscribe();
   }
 
   async getPin(userId: UserId): Promise<string> {
@@ -83,10 +91,6 @@ export class PinService implements PinServiceAbstraction {
           using ref = sdk.take();
           return ref.value.crypto().enroll_pin(pin);
         }),
-        catchError((error: unknown) => {
-          this.logService.error(`Failed to enroll pin: ${error}`);
-          return EMPTY;
-        }),
       ),
     );
 
@@ -117,7 +121,9 @@ export class PinService implements PinServiceAbstraction {
       (await this.getPinProtectedUserKeyPersistent(userId)) != null ||
       // Deprecated
       (await this.getPinKeyEncryptedUserKeyPersistent(userId)) != null;
-    const isPinSet = (await firstValueFrom(this.stateProvider.getUserState$(USER_KEY_ENCRYPTED_PIN, userId))) != null;
+    const isPinSet =
+      (await firstValueFrom(this.stateProvider.getUserState$(USER_KEY_ENCRYPTED_PIN, userId))) !=
+      null;
 
     if (isPersistentPinSet) {
       return "PERSISTENT";
@@ -182,11 +188,7 @@ export class PinService implements PinServiceAbstraction {
               if (!sdk) {
                 throw new Error("SDK not available");
               }
-              return sdk.crypto().unseal_password_protected_key_envelope(pin, envelope);
-            }),
-            catchError((error: unknown) => {
-              this.logService.error(`Failed to enroll pin: ${error}`);
-              return EMPTY;
+              return sdk.crypto().unseal_password_protected_key_envelope(pin, envelope!);
             }),
           ),
         );
@@ -204,17 +206,12 @@ export class PinService implements PinServiceAbstraction {
           this.accountService.accounts$.pipe(map((accounts) => accounts[userId].email)),
         );
         const kdfConfig = await this.kdfConfigService.getKdfConfig(userId);
-        const userKey: UserKey = await this.decryptUserKey(
+        return await this.decryptUserKey(
           pin,
           email,
           kdfConfig,
-          new EncString(pinKeyEncryptedUserKey),
+          new EncString(pinKeyEncryptedUserKey!),
         );
-        if (!userKey) {
-          this.logService.warning(`User key null after pin key decryption.`);
-          return null;
-        }
-        return userKey;
       } catch (error) {
         this.logService.error(`Error decrypting user key with pin: ${error}`);
         return null;

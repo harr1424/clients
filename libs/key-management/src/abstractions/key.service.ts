@@ -252,7 +252,7 @@ export abstract class KeyService {
   /**
    * Retrieves a stream of unlocked user keys. Unlocking a user will emit the user key and user id.
    */
-  readonly unlockedUserKeys$: Observable<{ userId: UserId; userKey: UserKey }>;
+  abstract unlockedUserKeys$: Observable<{ userId: UserId; userKey: UserKey }>;
 
   /**
    * Returns the organization's symmetric key
