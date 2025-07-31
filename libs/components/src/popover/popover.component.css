@@ -1,13 +1,16 @@
 .bit-popover-arrow {
-  @apply tw-absolute tw-z-10 tw-size-4 tw-rotate-45 tw-bg-primary-100 tw-shadow-lg;
+  @apply tw-absolute tw-size-5 tw-rounded-md tw-z-10 tw-bg-primary-100 tw-shadow-lg;
+  clip-path: polygon(30% 00%, 100% 70%, 0% 100%);
 }
 
 .bit-popover-right .bit-popover-arrow {
-  @apply tw-left-1 -tw-translate-x-3/4 tw-rounded-bl-sm;
+  @apply -tw-translate-x-1/2;
+  --tw-rotate: 45deg;
 }
 
 .bit-popover-left .bit-popover-arrow {
-  @apply tw-right-1 tw-translate-x-3/4 tw-rounded-tr-sm;
+  @apply tw-right-0 tw-translate-x-1/2;
+  --tw-rotate: 225deg;
 }
 
 .bit-popover-right-start .bit-popover-arrow,
@@ -26,11 +29,13 @@
 }
 
 .bit-popover-below .bit-popover-arrow {
-  @apply tw-top-1 -tw-translate-y-3/4 tw-rounded-tl-sm;
+  @apply tw-top-0 -tw-translate-y-1/2;
+  --tw-rotate: 135deg;
 }
 
 .bit-popover-above .bit-popover-arrow {
-  @apply tw-bottom-1 tw-translate-y-3/4 tw-rounded-br-sm;
+  @apply -tw-translate-y-1/2;
+  --tw-rotate: -45deg;
 }
 
 .bit-popover-below-start .bit-popover-arrow,
