@@ -568,7 +568,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       }
 
       const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
-      await this.vaultTimeoutSettingsService.clear(userId);
+      await this.pinService.unsetPin(userId);
     }
   }
 

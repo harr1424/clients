@@ -1,105 +1,27 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { catchError, EMPTY, firstValueFrom, map } from "rxjs";
+import { catchError, concatMap, EMPTY, firstValueFrom, map } from "rxjs";
 
 import { assertNonNullish } from "@bitwarden/common/auth/utils";
 import { SdkService } from "@bitwarden/common/platform/abstractions/sdk/sdk.service";
 import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
+import { StateProvider } from "@bitwarden/common/platform/state";
 // eslint-disable-next-line no-restricted-imports
 import { KdfConfig, KdfConfigService, KeyService } from "@bitwarden/key-management";
 import { PasswordProtectedKeyEnvelope } from "@bitwarden/sdk-internal";
 
 import { AccountService } from "../../auth/abstractions/account.service";
-import { CryptoFunctionService } from "../../key-management/crypto/abstractions/crypto-function.service";
 import { EncryptService } from "../../key-management/crypto/abstractions/encrypt.service";
 import { EncString, EncryptedString } from "../../key-management/crypto/models/enc-string";
 import { KeyGenerationService } from "../../platform/abstractions/key-generation.service";
 import { LogService } from "../../platform/abstractions/log.service";
-import { PIN_DISK, PIN_MEMORY, StateProvider, UserKeyDefinition } from "../../platform/state";
 import { UserId } from "../../types/guid";
 import { PinKey, UserKey } from "../../types/key";
 import { firstValueFromOrThrow } from "../utils";
 
+import { PinLockType } from "./pin-lock-type";
 import { PinServiceAbstraction } from "./pin.service.abstraction";
-
-/**
- * - DISABLED   : No PIN set.
- * - PERSISTENT : PIN is set and persists through client reset.
- * - EPHEMERAL  : PIN is set, but does NOT persist through client reset. This means that
- *                after client reset the master password is required to unlock.
- */
-export type PinLockType = "DISABLED" | "PERSISTENT" | "EPHEMERAL";
-
-/**
- * The persistent (stored on disk) version of the UserKey, encrypted by the PinKey.
- *
- * @deprecated
- * @remarks Persists through a client reset. Used when `requireMasterPasswordOnClientRestart` is disabled.
- * @see SetPinComponent.setPinForm.requireMasterPasswordOnClientRestart
- */
-export const PIN_KEY_ENCRYPTED_USER_KEY_PERSISTENT = new UserKeyDefinition<EncryptedString>(
-  PIN_DISK,
-  "pinKeyEncryptedUserKeyPersistent",
-  {
-    deserializer: (jsonValue) => jsonValue,
-    clearOn: ["logout"],
-  },
-);
-
-/**
- * The persistent (stored on disk) version of the UserKey, stored in a `PasswordProtectedKeyEnvelope`.
- *
- * @remarks Persists through a client reset. Used when `requireMasterPasswordOnClientRestart` is disabled.
- * @see SetPinComponent.setPinForm.requireMasterPasswordOnClientRestart
- */
-export const PIN_PROTECTED_USER_KEY_ENVELOPE_PERSISTENT = new UserKeyDefinition<PasswordProtectedKeyEnvelope>(
-  PIN_DISK,
-  "pinProtectedUserKeyEnvelopePersistent",
-  {
-    deserializer: (jsonValue) => jsonValue,
-    clearOn: ["logout"],
-  },
-);
-
-/**
- * The ephemeral (stored in memory) version of the UserKey, encrypted by the PinKey.
- *
- * @deprecated
- * @remarks Does NOT persist through a client reset. Used when `requireMasterPasswordOnClientRestart` is enabled.
- * @see SetPinComponent.setPinForm.requireMasterPasswordOnClientRestart
- */
-export const PIN_KEY_ENCRYPTED_USER_KEY_EPHEMERAL = new UserKeyDefinition<EncryptedString>(
-  PIN_MEMORY,
-  "pinKeyEncryptedUserKeyEphemeral",
-  {
-    deserializer: (jsonValue) => jsonValue,
-    clearOn: ["logout"],
-  },
-);
-
-/**
- * The ephemeral (stored in memory) version of the UserKey, stored in a `PasswordProtectedKeyEnvelope`.
- */
-export const PIN_PROTECTED_USER_KEY_ENVELOPE_EPHEMERAL = new UserKeyDefinition<PasswordProtectedKeyEnvelope>(
-  PIN_MEMORY,
-  "pinProtectedUserKeyEnvelopeEphemeral",
-  {
-    deserializer: (jsonValue) => jsonValue,
-    clearOn: ["logout"],
-  },
-);
-
-/**
- * The PIN, encrypted by the UserKey.
- */
-export const USER_KEY_ENCRYPTED_PIN = new UserKeyDefinition<EncryptedString>(
-  PIN_DISK,
-  "userKeyEncryptedPin",
-  {
-    deserializer: (jsonValue) => jsonValue,
-    clearOn: ["logout"],
-  },
-);
+import { PIN_KEY_ENCRYPTED_USER_KEY_PERSISTENT, PIN_PROTECTED_USER_KEY_ENVELOPE_EPHEMERAL, PIN_PROTECTED_USER_KEY_ENVELOPE_PERSISTENT, USER_KEY_ENCRYPTED_PIN } from "./pin.state";
 
 export class PinService implements PinServiceAbstraction {
   constructor(
@@ -111,13 +33,37 @@ export class PinService implements PinServiceAbstraction {
     private stateProvider: StateProvider,
     private keyService: KeyService,
     private sdkService: SdkService,
-  ) { }
+  ) {
+    keyService.unlockedUserKeys$.pipe(
+      concatMap(async ({ userId }) => {
+        if ((await this.getPinLockType(userId) === "EPHEMERAL") && !(await this.isPinDecryptionAvailable(userId))) {
+          this.logService.info("[Pin Service] After first unlock; Setting up ephemeral PIN");
+          const pin = await this.getPin(userId);
+          await this.setPin(pin, "EPHEMERAL", userId);
+        } else if (await this.getPinLockType(userId) === "PERSISTENT") {
+          // ----- ENCRYPTION MIGRATION -----
+          // Pin-key encrypted user-keys are eagerly migrated to the new pin-protected user key envelope format.
+          if ((await this.getPinKeyEncryptedUserKeyPersistent(userId)) != null) {
+            this.logService.info("[Pin Service] Migrating legacy PIN");
+            const pin = await this.getPin(userId);
+            await this.setPin(pin, "PERSISTENT", userId);
+          }
+        }
+      })
+    ).subscribe();
+  }
 
   async getPin(userId: UserId): Promise<string> {
     assertNonNullish(userId, "userId");
 
-    const userKey: UserKey = await firstValueFromOrThrow(this.keyService.userKey$(userId), "userKey");
-    const userKeyEncryptedPin: EncryptedString = await firstValueFromOrThrow(this.stateProvider.getUserState$(USER_KEY_ENCRYPTED_PIN, userId), "userKeyEncryptedPin");
+    const userKey: UserKey = await firstValueFromOrThrow(
+      this.keyService.userKey$(userId),
+      "userKey",
+    );
+    const userKeyEncryptedPin: EncryptedString = await firstValueFromOrThrow(
+      this.stateProvider.getUserState$(USER_KEY_ENCRYPTED_PIN, userId),
+      "userKeyEncryptedPin",
+    );
     return this.encryptService.decryptString(new EncString(userKeyEncryptedPin), userKey);
   }
 
@@ -145,7 +91,12 @@ export class PinService implements PinServiceAbstraction {
     );
 
     // NOTE: The type assertion should be replaced as soon as EncryptedString is just a type alias of the SDK's `EncString` type
-    await this.setPinState(pinProtectedUserKeyEnvelope, userKeyEncryptedPin as string as EncryptedString, pinLockType, userId);
+    await this.setPinState(
+      pinProtectedUserKeyEnvelope,
+      userKeyEncryptedPin as string as EncryptedString,
+      pinLockType,
+      userId,
+    );
   }
 
   async unsetPin(userId: UserId): Promise<void> {
@@ -156,26 +107,21 @@ export class PinService implements PinServiceAbstraction {
     await this.stateProvider.setUserState(PIN_PROTECTED_USER_KEY_ENVELOPE_PERSISTENT, null, userId);
 
     // Note: This can be deleted after sufficiently many PINs are migrated and the state is removed.
-    await this.stateProvider.setUserState(PIN_KEY_ENCRYPTED_USER_KEY_EPHEMERAL, null, userId);
     await this.stateProvider.setUserState(PIN_KEY_ENCRYPTED_USER_KEY_PERSISTENT, null, userId);
   }
 
   async getPinLockType(userId: UserId): Promise<PinLockType> {
     assertNonNullish(userId, "userId");
 
-    const isEphemeralPinSet =
-      (await this.getPinProtectedUserKeyEphemeral(userId)) != null
-      // Deprecated
-      || (await this.getPinKeyEncryptedUserKeyEphemeral(userId)) != null;
-
     const isPersistentPinSet =
-      (await this.getPinProtectedUserKeyPersistent(userId)) != null
+      (await this.getPinProtectedUserKeyPersistent(userId)) != null ||
       // Deprecated
-      || (await this.getPinKeyEncryptedUserKeyPersistent(userId)) != null;
+      (await this.getPinKeyEncryptedUserKeyPersistent(userId)) != null;
+    const isPinSet = (await firstValueFrom(this.stateProvider.getUserState$(USER_KEY_ENCRYPTED_PIN, userId))) != null;
 
     if (isPersistentPinSet) {
       return "PERSISTENT";
-    } else if (isEphemeralPinSet) {
+    } else if (isPinSet) {
       return "EPHEMERAL";
     } else {
       return "DISABLED";
@@ -192,7 +138,6 @@ export class PinService implements PinServiceAbstraction {
     assertNonNullish(userId, "userId");
 
     const pinLockType = await this.getPinLockType(userId);
-
     switch (pinLockType) {
       case "DISABLED":
         return false;
@@ -201,13 +146,11 @@ export class PinService implements PinServiceAbstraction {
         return true;
       case "EPHEMERAL": {
         // The above getPinLockType call ensures that we have a UserKeyEncryptedPin set.
-        // However, we must additively check to ensure that we have a set PinKeyEncryptedUserKeyEphemeral b/c otherwise
-        // we cannot take a PIN, derive a PIN key, and decrypt the ephemeral UserKey.
-        const pinKeyEncryptedUserKeyEphemeral =
-          await this.getPinKeyEncryptedUserKeyEphemeral(userId);
+        // However, we must additively check to ensure that we have a set PinKeyEncryptedUserKeyEphemeral, since
+        // this is only available after first unlock
+        const pinKeyEncryptedUserKeyEphemeral = await this.getPinProtectedUserKeyEphemeral(userId);
         return Boolean(pinKeyEncryptedUserKeyEphemeral);
       }
-
       default: {
         // Compile-time check for exhaustive switch
         const _exhaustiveCheck: never = pinLockType;
@@ -220,25 +163,26 @@ export class PinService implements PinServiceAbstraction {
     assertNonNullish(pin, "pin");
     assertNonNullish(userId, "userId");
 
-    const hasPinProtectedKeyEnvelopeSet = (await this.getPinProtectedUserKeyEphemeral(userId)) != null ||
+    const hasPinProtectedKeyEnvelopeSet =
+      (await this.getPinProtectedUserKeyEphemeral(userId)) != null ||
       (await this.getPinProtectedUserKeyPersistent(userId)) != null;
+
     if (hasPinProtectedKeyEnvelopeSet) {
       const pinLockType = await this.getPinLockType(userId);
-      const envelope = pinLockType === "EPHEMERAL"
-        ? await this.getPinProtectedUserKeyEphemeral(userId)
-        : await this.getPinProtectedUserKeyPersistent(userId);
+      const envelope =
+        pinLockType === "EPHEMERAL"
+          ? await this.getPinProtectedUserKeyEphemeral(userId)
+          : await this.getPinProtectedUserKeyPersistent(userId);
 
       try {
         // Use the sdk to create an enrollment, not yet persisting it to state
         const userKeyBytes = await firstValueFrom(
-          this.sdkService.userClient$(userId).pipe(
+          this.sdkService.client$.pipe(
             map((sdk) => {
               if (!sdk) {
                 throw new Error("SDK not available");
               }
-
-              using ref = sdk.take();
-              return ref.value.crypto().unseal_password_protected_key_envelope(pin, envelope);
+              return sdk.crypto().unseal_password_protected_key_envelope(pin, envelope);
             }),
             catchError((error: unknown) => {
               this.logService.error(`Failed to enroll pin: ${error}`);
@@ -255,20 +199,16 @@ export class PinService implements PinServiceAbstraction {
     } else {
       // This branch is deprecated and will be removed in the future, but is kept for migration.
       try {
-        const pinLockType = await this.getPinLockType(userId);
-
-        const pinKeyEncryptedUserKey = await this.getPinKeyEncryptedKeys(pinLockType, userId);
-
+        const pinKeyEncryptedUserKey = await this.getPinKeyEncryptedUserKeyPersistent(userId);
         const email = await firstValueFrom(
           this.accountService.accounts$.pipe(map((accounts) => accounts[userId].email)),
         );
         const kdfConfig = await this.kdfConfigService.getKdfConfig(userId);
-
         const userKey: UserKey = await this.decryptUserKey(
           pin,
           email,
           kdfConfig,
-          pinKeyEncryptedUserKey,
+          new EncString(pinKeyEncryptedUserKey),
         );
         if (!userKey) {
           this.logService.warning(`User key null after pin key decryption.`);
@@ -282,7 +222,14 @@ export class PinService implements PinServiceAbstraction {
     }
   }
 
-  private async getPinProtectedUserKeyEphemeral(userId: UserId): Promise<PasswordProtectedKeyEnvelope | null> {
+  async logout(userId: UserId): Promise<void> {
+    assertNonNullish(userId, "userId");
+    await this.stateProvider.setUserState(PIN_PROTECTED_USER_KEY_ENVELOPE_EPHEMERAL, null, userId);
+  }
+
+  private async getPinProtectedUserKeyEphemeral(
+    userId: UserId,
+  ): Promise<PasswordProtectedKeyEnvelope | null> {
     assertNonNullish(userId, "userId");
 
     return await firstValueFrom(
@@ -290,7 +237,9 @@ export class PinService implements PinServiceAbstraction {
     );
   }
 
-  private async getPinProtectedUserKeyPersistent(userId: UserId): Promise<PasswordProtectedKeyEnvelope | null> {
+  private async getPinProtectedUserKeyPersistent(
+    userId: UserId,
+  ): Promise<PasswordProtectedKeyEnvelope | null> {
     assertNonNullish(userId, "userId");
 
     return await firstValueFrom(
@@ -300,7 +249,12 @@ export class PinService implements PinServiceAbstraction {
 
   // Clears the set pin for the user, and then sets the PIN-protected user key and the user key encrypted pin to state.
   // The user key protected PIN is persisted, while the PIN-protected user key is set to ephemeral / persistent state depending on the lock type.
-  private async setPinState(pinProtectedUserKeyEnvelope: PasswordProtectedKeyEnvelope, userKeyEncryptedPin: EncryptedString, pinLockType: PinLockType, userId: UserId): Promise<void> {
+  private async setPinState(
+    pinProtectedUserKeyEnvelope: PasswordProtectedKeyEnvelope,
+    userKeyEncryptedPin: EncryptedString,
+    pinLockType: PinLockType,
+    userId: UserId,
+  ): Promise<void> {
     // First un-enroll the user from pin-unlock
     await this.unsetPin(userId);
 
@@ -338,15 +292,9 @@ export class PinService implements PinServiceAbstraction {
     return (await this.keyGenerationService.stretchKey(pinKey)) as PinKey;
   }
 
-  private async getPinKeyEncryptedUserKeyEphemeral(userId: UserId): Promise<EncryptedString | null> {
-    assertNonNullish(userId, "userId");
-
-    return await firstValueFrom(
-      this.stateProvider.getUserState$(PIN_KEY_ENCRYPTED_USER_KEY_EPHEMERAL, userId),
-    );
-  }
-
-  private async getPinKeyEncryptedUserKeyPersistent(userId: UserId): Promise<EncryptedString | null> {
+  private async getPinKeyEncryptedUserKeyPersistent(
+    userId: UserId,
+  ): Promise<EncryptedString | null> {
     assertNonNullish(userId, "userId");
 
     return await firstValueFrom(
@@ -357,7 +305,7 @@ export class PinService implements PinServiceAbstraction {
   /**
    * Decrypts the UserKey with the provided PIN.
    * @deprecated
-   * @throws If the PIN does not match the PIN that was used to encrypt the user key 
+   * @throws If the PIN does not match the PIN that was used to encrypt the user key
    * @throws If the salt, or KDF don't match the salt / KDF used to encrypt the user key
    */
   private async decryptUserKey(
@@ -365,9 +313,7 @@ export class PinService implements PinServiceAbstraction {
     salt: string,
     kdfConfig: KdfConfig,
     pinKeyEncryptedUserKey: EncString,
-    userId: UserId,
   ): Promise<UserKey> {
-    assertNonNullish(userId, "userId");
     assertNonNullish(pin, "pin");
     assertNonNullish(salt, "salt");
     assertNonNullish(kdfConfig, "kdfConfig");

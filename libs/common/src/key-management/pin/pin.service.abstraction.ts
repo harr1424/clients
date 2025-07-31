@@ -4,7 +4,7 @@ import { KdfConfig } from "@bitwarden/key-management";
 import { UserId } from "../../types/guid";
 import { PinKey, UserKey } from "../../types/key";
 
-import { PinLockType } from "./pin.service.implementation";
+import { PinLockType } from "./pin-lock-type";
 
 /**
  * The PinService is used for PIN-based unlocks. Below is a very basic overview of the PIN flow:
@@ -63,6 +63,11 @@ export abstract class PinServiceAbstraction {
    * Used for unlock / user verification scenarios where we will need to decrypt the UserKey with the PIN.
    */
   abstract isPinDecryptionAvailable(userId: UserId): Promise<boolean>;
+
+  /**
+   * Clears ephemeral PINs for the user being logged out. 
+   */
+  abstract logout(userId: UserId): Promise<void>;
 
   /**
    * Decrypts the UserKey with the provided PIN.

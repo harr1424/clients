@@ -250,6 +250,11 @@ export abstract class KeyService {
    */
   abstract activeUserOrgKeys$: Observable<Record<OrganizationId, OrgKey>>;
   /**
+   * Retrieves a stream of unlocked user keys. Unlocking a user will emit the user key and user id.
+   */
+  readonly unlockedUserKeys$: Observable<{ userId: UserId; userKey: UserKey }>;
+
+  /**
    * Returns the organization's symmetric key
    * @deprecated Use the observable userOrgKeys$ and `map` to the desired {@link OrgKey} instead
    * @throws Error when not active user

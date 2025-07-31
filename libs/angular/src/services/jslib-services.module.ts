@@ -670,7 +670,6 @@ const safeProviders: SafeProvider[] = [
     provide: KeyService,
     useClass: DefaultKeyService,
     deps: [
-      PinServiceAbstraction,
       InternalMasterPasswordServiceAbstraction,
       KeyGenerationServiceAbstraction,
       CryptoFunctionServiceAbstraction,
@@ -1222,12 +1221,13 @@ const safeProviders: SafeProvider[] = [
     useClass: PinService,
     deps: [
       AccountServiceAbstraction,
-      CryptoFunctionServiceAbstraction,
       EncryptService,
       KdfConfigService,
       KeyGenerationServiceAbstraction,
       LogService,
       StateProvider,
+      KeyService,
+      SdkService,
     ],
   }),
   safeProvider({
