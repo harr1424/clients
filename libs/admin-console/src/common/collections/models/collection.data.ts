@@ -6,7 +6,7 @@ import { CollectionType, CollectionTypes } from "./collection";
 import { CollectionDetailsResponse } from "./collection.response";
 
 export class CollectionData {
-  id: CollectionId | undefined;
+  id: CollectionId;
   organizationId: OrganizationId;
   name: string;
   externalId: string | undefined;
@@ -23,7 +23,7 @@ export class CollectionData {
     this.readOnly = response.readOnly;
     this.manage = response.manage;
     this.hidePasswords = response.hidePasswords;
-    this.type = response.type ?? CollectionTypes.SharedCollection;
+    this.type = response.type;
   }
 
   static fromJSON(obj: Jsonify<CollectionData | null>): CollectionData | null {

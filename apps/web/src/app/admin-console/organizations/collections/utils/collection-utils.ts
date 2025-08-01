@@ -1,11 +1,7 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import {
-  Collection,
-  CollectionAccessDetailsResponse,
   CollectionAdminView,
-  CollectionData,
-  CollectionDetailsResponse,
   CollectionView,
   NestingDelimiter,
 } from "@bitwarden/admin-console/common";
@@ -49,10 +45,9 @@ function cloneCollection(
   let cloned;
 
   if (collection instanceof CollectionAdminView) {
-    cloned = new CollectionAdminView(new CollectionAccessDetailsResponse({ ...collection }));
+    cloned = Object.assign(new CollectionAdminView({ ...collection }), collection);
   } else {
-    const cd = new CollectionData(new CollectionDetailsResponse({ ...collection }));
-    cloned = new CollectionView(new Collection(cd), collection.name);
+    cloned = new CollectionView({ ...collection });
   }
   return cloned;
 }

@@ -5,7 +5,7 @@ import { CollectionId, OrganizationId } from "@bitwarden/common/types/guid";
 import { CollectionType, CollectionTypes } from "./collection";
 
 export class CollectionResponse extends BaseResponse {
-  id: CollectionId | undefined;
+  id: CollectionId;
   organizationId: OrganizationId;
   name: string;
   externalId: string | undefined;
@@ -17,7 +17,7 @@ export class CollectionResponse extends BaseResponse {
     this.organizationId = this.getResponseProperty("OrganizationId");
     this.name = this.getResponseProperty("Name");
     this.externalId = this.getResponseProperty("ExternalId");
-    this.type = this.getResponseProperty("Type");
+    this.type = this.getResponseProperty("Type") ?? CollectionTypes.SharedCollection;
   }
 }
 

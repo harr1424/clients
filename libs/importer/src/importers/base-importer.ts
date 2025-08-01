@@ -4,16 +4,12 @@ import * as papa from "papaparse";
 
 // This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
 // eslint-disable-next-line no-restricted-imports
-import {
-  Collection,
-  CollectionData,
-  CollectionDetailsResponse,
-  CollectionView,
-} from "@bitwarden/admin-console/common";
+import { CollectionView } from "@bitwarden/admin-console/common";
 import { normalizeExpiryYearFormat } from "@bitwarden/common/autofill/utils";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { ConsoleLogService } from "@bitwarden/common/platform/services/console-log.service";
+import { CollectionId } from "@bitwarden/common/types/guid";
 import { FieldType, SecureNoteType, CipherType } from "@bitwarden/common/vault/enums";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
 import { FieldView } from "@bitwarden/common/vault/models/view/field.view";
@@ -282,14 +278,11 @@ export abstract class BaseImporter {
   protected moveFoldersToCollections(result: ImportResult) {
     result.folderRelationships.forEach((r) => result.collectionRelationships.push(r));
     result.collections = result.folders.map((f) => {
-      const cd = new CollectionData(
-        new CollectionDetailsResponse({
-          name: f.name,
-          organizationId: this.organizationId,
-          id: f.id,
-        }),
-      );
-      const collection = new CollectionView(new Collection(cd), f.name);
+      const collection = new CollectionView({
+        name: f.name,
+        organizationId: this.organizationId,
+        id: f.id as CollectionId,
+      });
       return collection;
     });
     result.folderRelationships = [];

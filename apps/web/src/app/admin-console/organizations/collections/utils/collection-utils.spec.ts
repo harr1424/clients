@@ -1,9 +1,5 @@
-import {
-  Collection,
-  CollectionData,
-  CollectionDetailsResponse,
-  CollectionView,
-} from "@bitwarden/admin-console/common";
+import { CollectionView } from "@bitwarden/admin-console/common";
+import { CollectionId } from "@bitwarden/common/types/guid";
 import { TreeNode } from "@bitwarden/common/vault/models/domain/tree-node";
 
 import { getNestedCollectionTree, getFlatCollectionTree } from "./collection-utils";
@@ -14,23 +10,17 @@ describe("CollectionUtils Service", () => {
       // Arrange
       const collections: CollectionView[] = [];
 
-      const parentName = "Parent";
-      const parentCd = new CollectionData(
-        new CollectionDetailsResponse({
-          name: parentName,
-          organizationId: "orgId",
-        }),
-      );
-      const parentCollection = new CollectionView(new Collection(parentCd), parentName);
+      const parentCollection = new CollectionView({
+        name: "Parent",
+        organizationId: "orgId",
+        id: null,
+      });
 
-      const childName = "Parent/Child";
-      const childCd = new CollectionData(
-        new CollectionDetailsResponse({
-          name: childName,
-          organizationId: "orgId",
-        }),
-      );
-      const childCollection = new CollectionView(new Collection(childCd), childName);
+      const childCollection = new CollectionView({
+        name: "Parent/Child",
+        organizationId: "orgId",
+        id: null,
+      });
 
       collections.push(childCollection);
       collections.push(parentCollection);
@@ -58,15 +48,11 @@ describe("CollectionUtils Service", () => {
   describe("getFlatCollectionTree", () => {
     it("should flatten a tree node with no children", () => {
       // Arrange
-      const name = "Test Collection";
-      const cd = new CollectionData(
-        new CollectionDetailsResponse({
-          name,
-          id: "test-id",
-          organizationId: "orgId",
-        }),
-      );
-      const collection = new CollectionView(new Collection(cd), name);
+      const collection = new CollectionView({
+        name: "Test Collection",
+        id: "test-id" as CollectionId,
+        organizationId: "orgId",
+      });
 
       const treeNodes: TreeNode<CollectionView>[] = [
         new TreeNode<CollectionView>(collection, {} as TreeNode<CollectionView>),
@@ -82,45 +68,29 @@ describe("CollectionUtils Service", () => {
 
     it("should flatten a tree node with children", () => {
       // Arrange
-      const parentName = "Parent";
-      const parentCd = new CollectionData(
-        new CollectionDetailsResponse({
-          name: parentName,
-          id: "parent-id",
-          organizationId: "orgId",
-        }),
-      );
-      const parentCollection = new CollectionView(new Collection(parentCd), parentName);
+      const parentCollection = new CollectionView({
+        name: "Parent",
+        id: "parent-id" as CollectionId,
+        organizationId: "orgId",
+      });
 
-      const child1Name = "Child 1";
-      const child1Cd = new CollectionData(
-        new CollectionDetailsResponse({
-          name: child1Name,
-          id: "child1-id",
-          organizationId: "orgId",
-        }),
-      );
-      const child1Collection = new CollectionView(new Collection(child1Cd), child1Name);
+      const child1Collection = new CollectionView({
+        name: "Child 1",
+        id: "child1-id" as CollectionId,
+        organizationId: "orgId",
+      });
 
-      const child2Name = "Child 2";
-      const child2Cd = new CollectionData(
-        new CollectionDetailsResponse({
-          name: child2Name,
-          id: "child2-id",
-          organizationId: "orgId",
-        }),
-      );
-      const child2Collection = new CollectionView(new Collection(child2Cd), child2Name);
+      const child2Collection = new CollectionView({
+        name: "Child 2",
+        id: "child2-id" as CollectionId,
+        organizationId: "orgId",
+      });
 
-      const grandChildName = "Grandchild";
-      const grandChildCd = new CollectionData(
-        new CollectionDetailsResponse({
-          name: grandChildName,
-          id: "grandchild-id",
-          organizationId: "orgId",
-        }),
-      );
-      const grandchildCollection = new CollectionView(new Collection(grandChildCd), grandChildName);
+      const grandchildCollection = new CollectionView({
+        name: "Grandchild",
+        id: "grandchild-id" as CollectionId,
+        organizationId: "orgId",
+      });
 
       const parentNode = new TreeNode<CollectionView>(
         parentCollection,

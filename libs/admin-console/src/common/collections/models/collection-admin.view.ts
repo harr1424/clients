@@ -1,11 +1,10 @@
 import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
-import { CollectionId } from "@bitwarden/common/types/guid";
 
 import { CollectionAccessSelectionView } from "./collection-access-selection.view";
 import { CollectionAccessDetailsResponse } from "./collection.response";
 import { CollectionView } from "./collection.view";
 
-export const Unassigned = "unassigned" as CollectionId;
+export const Unassigned = "unassigned";
 
 export class CollectionAdminView extends CollectionView {
   groups: CollectionAccessSelectionView[] = [];
@@ -21,24 +20,6 @@ export class CollectionAdminView extends CollectionView {
    * Flag indicating the user has been explicitly assigned to this Collection
    */
   assigned: boolean = false;
-
-  constructor(response: CollectionAccessDetailsResponse) {
-    super(response, response.name);
-
-    if (!response) {
-      return;
-    }
-
-    this.groups = response.groups
-      ? response.groups.map((g) => new CollectionAccessSelectionView(g))
-      : [];
-
-    this.users = response.users
-      ? response.users.map((g) => new CollectionAccessSelectionView(g))
-      : [];
-
-    this.assigned = response.assigned;
-  }
 
   /**
    * Returns true if the user can edit a collection (including user and group access) from the Admin Console.
@@ -112,5 +93,24 @@ export class CollectionAdminView extends CollectionView {
    */
   get isUnassignedCollection() {
     return this.id === Unassigned;
+  }
+
+  static async fromCollectionAccessDetails(
+    collection: CollectionAccessDetailsResponse,
+  ): Promise<CollectionAdminView> {
+    const v = new CollectionAdminView({ ...collection });
+
+    v.groups = collection.groups
+      ? collection.groups.map((g) => new CollectionAccessSelectionView(g))
+      : [];
+
+    v.users = collection.users
+      ? collection.users.map((g) => new CollectionAccessSelectionView(g))
+      : [];
+
+    v.assigned = collection.assigned;
+    v.externalId = collection.externalId;
+
+    return v;
   }
 }

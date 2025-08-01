@@ -5,13 +5,7 @@ import { of } from "rxjs";
 
 // This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
 // eslint-disable-next-line no-restricted-imports
-import {
-  Collection,
-  CollectionData,
-  CollectionDetailsResponse,
-  CollectionService,
-  CollectionView,
-} from "@bitwarden/admin-console/common";
+import { CollectionService, CollectionView } from "@bitwarden/admin-console/common";
 import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
 import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
@@ -35,30 +29,28 @@ describe("AssignCollectionsComponent", () => {
   const mockUserId = "mock-user-id" as UserId;
   const accountService: FakeAccountService = mockAccountServiceWith(mockUserId);
 
-  const editCd = new CollectionData(
-    new CollectionDetailsResponse({
-      id: "collection-id" as CollectionId,
-      organizationId: "org-id" as OrganizationId,
-      name: "Editable Collection",
-      readOnly: false,
-      manage: true,
-    }),
-  );
-  const editCollection = new CollectionView(new Collection(editCd), editCd.name);
+  const editCollection = new CollectionView({
+    id: "collection-id" as CollectionId,
+    organizationId: "org-id" as OrganizationId,
+    name: "Editable Collection",
+  });
 
-  const readonlyCd = new CollectionData(
-    new CollectionDetailsResponse({
-      id: "read-only-collection-id" as CollectionId,
-      organizationId: "org-id" as OrganizationId,
-      name: "Read Only Collection",
-      readOnly: true,
-    }),
-  );
+  editCollection.readOnly = false;
+  editCollection.manage = true;
 
-  const readOnlyCollection1 = new CollectionView(new Collection(readonlyCd), readonlyCd.name);
-  const readOnlyCollection2 = new CollectionView(new Collection(readonlyCd), readonlyCd.name);
-  readOnlyCollection2.id = "read-only-collection-id-2" as CollectionId;
-  readOnlyCollection2.name = "Read Only Collection 2";
+  const readOnlyCollection1 = new CollectionView({
+    id: "read-only-collection-id" as CollectionId,
+    organizationId: "org-id" as OrganizationId,
+    name: "Read Only Collection",
+  });
+  readOnlyCollection1.readOnly = true;
+
+  const readOnlyCollection2 = new CollectionView({
+    id: "read-only-collection-id-2" as CollectionId,
+    organizationId: "org-id" as OrganizationId,
+    name: "Read Only Collection 2",
+  });
+  readOnlyCollection2.readOnly = true;
 
   const params = {
     organizationId: "org-id" as OrganizationId,

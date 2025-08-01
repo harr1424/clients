@@ -140,12 +140,6 @@ export class DefaultCipherAuthorizationService implements CipherAuthorizationSer
         }
 
         return this.collectionService.decryptedCollections$(userId).pipe(
-          map((collections) => {
-            if (collections.find((c) => c.id == null)) {
-              throw new Error("@TODO");
-            }
-            return collections.map((c) => ({ ...c, id: c.id!.toString() }));
-          }),
           getByIds(cipher.collectionIds),
           map((allCollections) => allCollections.some((collection) => collection.manage)),
         );

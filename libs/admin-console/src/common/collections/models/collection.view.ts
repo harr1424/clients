@@ -1,18 +1,19 @@
 import { Jsonify } from "type-fest";
 
 import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
+import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
 import { View } from "@bitwarden/common/models/view/view";
 import { CollectionId } from "@bitwarden/common/types/guid";
+import { OrgKey } from "@bitwarden/common/types/key";
 import { ITreeNodeObject } from "@bitwarden/common/vault/models/domain/tree-node";
 
 import { Collection, CollectionType, CollectionTypes } from "./collection";
-import { CollectionData } from "./collection.data";
-import { CollectionAccessDetailsResponse, CollectionDetailsResponse } from "./collection.response";
+import { CollectionAccessDetailsResponse } from "./collection.response";
 
 export const NestingDelimiter = "/";
 
 export class CollectionView implements View, ITreeNodeObject {
-  id: CollectionId | undefined;
+  id: CollectionId;
   organizationId: string;
   name: string;
   externalId: string | undefined;
@@ -23,25 +24,22 @@ export class CollectionView implements View, ITreeNodeObject {
   assigned: boolean = false;
   type: CollectionType = CollectionTypes.SharedCollection;
 
-  constructor(c: Collection | CollectionAccessDetailsResponse, name: string) {
-    if (c.organizationId == null) {
-      throw new Error("@TODO");
-    }
-
+  constructor(c: { id: CollectionId; organizationId: string; name: string }) {
     this.id = c.id;
     this.organizationId = c.organizationId;
-    this.name = name;
-    this.externalId = c.externalId;
-    if (c instanceof Collection) {
-      this.readOnly = c.readOnly;
-      this.hidePasswords = c.hidePasswords;
-      this.manage = c.manage;
-      this.assigned = true;
-    }
-    if (c instanceof CollectionAccessDetailsResponse) {
-      this.assigned = c.assigned;
-    }
-    this.type = c.type;
+    this.name = c.name;
+
+    //this.externalId = c.externalId;
+    //if (c instanceof Collection) {
+    //  this.readOnly = c.readOnly;
+    //  this.hidePasswords = c.hidePasswords;
+    //  this.manage = c.manage;
+    //  this.assigned = true;
+    //}
+    //if (c instanceof CollectionAccessDetailsResponse) {
+    //  this.assigned = c.assigned;
+    //}
+    //this.type = c.type;
   }
 
   canEditItems(org: Organization): boolean {
@@ -96,9 +94,34 @@ export class CollectionView implements View, ITreeNodeObject {
     return false;
   }
 
+  static async fromCollection(
+    collection: Collection,
+    encryptService: EncryptService,
+    key: OrgKey,
+  ): Promise<CollectionView> {
+    const view: CollectionView = Object.assign(
+      new CollectionView({ ...collection, name: "" }),
+      collection,
+    );
+    view.name = await collection.name.decryptWithKey(key, encryptService);
+    view.assigned = true;
+    return view;
+  }
+
+  static async fromCollectionAccessDetails(
+    collection: CollectionAccessDetailsResponse,
+  ): Promise<CollectionView> {
+    return new CollectionView({
+      ...collection,
+    });
+  }
+
+  static vaultFilterHead(): CollectionView {
+    return {} as CollectionView;
+  }
+
   static fromJSON(obj: Jsonify<CollectionView>) {
-    const cd = new CollectionData(new CollectionDetailsResponse({ ...obj }));
-    return Object.assign(new CollectionView(new Collection(cd), obj.name), obj);
+    return Object.assign(new CollectionView({ ...obj }), obj);
   }
 
   get isDefaultCollection() {

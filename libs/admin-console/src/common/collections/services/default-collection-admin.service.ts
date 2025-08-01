@@ -150,27 +150,24 @@ export class DefaultCollectionAdminService implements CollectionAdminService {
       throw new Error("No key for this collection's organization.");
     }
 
-    const cd = new CollectionData(
-      new CollectionDetailsResponse({
+    const collectionRequest = new CollectionRequest(
+      new Collection({
         ...model,
-        name: (await this.encryptService.encryptString(model.name, key)).encryptedString,
-        groups: model.groups.map(
-          (group) =>
-            new SelectionReadOnlyRequest(
-              group.id,
-              group.readOnly,
-              group.hidePasswords,
-              group.manage,
-            ),
-        ),
-        users: model.users.map(
-          (user) =>
-            new SelectionReadOnlyRequest(user.id, user.readOnly, user.hidePasswords, user.manage),
-        ),
+        name: await this.encryptService.encryptString(model.name, key),
       }),
     );
 
-    return new CollectionRequest(new Collection(cd));
+    collectionRequest.groups = model.groups.map(
+      (group) =>
+        new SelectionReadOnlyRequest(group.id, group.readOnly, group.hidePasswords, group.manage),
+    );
+
+    collectionRequest.users = model.users.map(
+      (user) =>
+        new SelectionReadOnlyRequest(user.id, user.readOnly, user.hidePasswords, user.manage),
+    );
+
+    return collectionRequest;
   }
 }
 

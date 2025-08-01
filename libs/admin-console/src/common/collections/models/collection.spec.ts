@@ -1,4 +1,8 @@
-import { makeSymmetricCryptoKey, mockEnc } from "@bitwarden/common/spec";
+import { MockProxy, mock } from "jest-mock-extended";
+
+import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
+import { EncString } from "@bitwarden/common/key-management/crypto/models/enc-string";
+import { makeSymmetricCryptoKey } from "@bitwarden/common/spec";
 import { CollectionId, OrganizationId } from "@bitwarden/common/types/guid";
 import { OrgKey } from "@bitwarden/common/types/key";
 
@@ -8,6 +12,7 @@ import { CollectionDetailsResponse } from "./collection.response";
 
 describe("Collection", () => {
   let data: CollectionData;
+  let encService: MockProxy<EncryptService>;
 
   beforeEach(() => {
     data = new CollectionData(
@@ -22,22 +27,16 @@ describe("Collection", () => {
         type: CollectionTypes.DefaultUserCollection,
       }),
     );
-  });
-
-  it("Throws when not provided name and organizationId", () => {
-    const cd = new CollectionData(new CollectionDetailsResponse({}));
-    expect(() => new Collection(cd)).toThrow();
+    encService = mock<EncryptService>();
+    encService.decryptString.mockResolvedValue("encName");
   });
 
   it("Convert from partial", () => {
-    const cd = new CollectionData(
-      new CollectionDetailsResponse({
-        name: "name",
-        organizationId: "orgId" as OrganizationId,
-        id: "id" as CollectionId,
-      }),
-    );
-    const card = new Collection(cd);
+    const card = new Collection({
+      name: new EncString("name"),
+      organizationId: "orgId" as OrganizationId,
+      id: "id" as CollectionId,
+    });
     expect(() => card).not.toThrow();
 
     expect(card.name).not.toBe(null);
@@ -51,7 +50,7 @@ describe("Collection", () => {
   });
 
   it("Convert", () => {
-    const collection = new Collection(data);
+    const collection = Collection.fromCollectionData(data);
 
     expect(collection).toEqual({
       id: "id",
@@ -66,15 +65,11 @@ describe("Collection", () => {
   });
 
   it("Decrypt", async () => {
-    const collectionData = new CollectionData(
-      new CollectionDetailsResponse({
-        name: "encName",
-        organizationId: "orgId" as OrganizationId,
-        id: "id" as CollectionId,
-      }),
-    );
-    const collection = new Collection(collectionData);
-    collection.name = mockEnc(collectionData.name);
+    const collection = new Collection({
+      name: new EncString("encName"),
+      organizationId: "orgId" as OrganizationId,
+      id: "id" as CollectionId,
+    });
     collection.externalId = "extId";
     collection.readOnly = false;
     collection.hidePasswords = false;
@@ -83,7 +78,7 @@ describe("Collection", () => {
 
     const key = makeSymmetricCryptoKey<OrgKey>();
 
-    const view = await collection.decrypt(key);
+    const view = await collection.decrypt(key, encService);
 
     expect(view).toEqual({
       externalId: "extId",

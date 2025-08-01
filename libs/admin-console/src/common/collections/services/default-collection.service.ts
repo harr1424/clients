@@ -23,7 +23,7 @@ import { ServiceUtils } from "@bitwarden/common/vault/service-utils";
 import { KeyService } from "@bitwarden/key-management";
 
 import { CollectionService } from "../abstractions/collection.service";
-import { Collection, CollectionData, CollectionDetailsResponse, CollectionView } from "../models";
+import { Collection, CollectionData, CollectionView } from "../models";
 
 import { DECRYPTED_COLLECTION_DATA_KEY, ENCRYPTED_COLLECTION_DATA_KEY } from "./collection.state";
 
@@ -60,7 +60,7 @@ export class DefaultCollectionService implements CollectionService {
           return null;
         }
 
-        return Object.values(collections).map((c) => new Collection(c));
+        return Object.values(collections).map((c) => Collection.fromCollectionData(c));
       }),
     );
   }
@@ -121,7 +121,7 @@ export class DefaultCollectionService implements CollectionService {
           if (!orgKeys) {
             throw new Error("No key for this collection's organization.");
           }
-          return this.decryptMany$([new Collection(toUpdate)], orgKeys);
+          return this.decryptMany$([Collection.fromCollectionData(toUpdate)], orgKeys);
         }),
       ),
     );
@@ -185,21 +185,13 @@ export class DefaultCollectionService implements CollectionService {
     );
 
     const encryptedName = await this.encryptService.encryptString(model.name, key);
-    const cd = new CollectionData(
-      new CollectionDetailsResponse({
-        ...model,
-        id: model.id,
-        organizationId: model.organizationId as OrganizationId,
-        readOnly: model.readOnly,
-        externalId: model.externalId,
-        name: encryptedName,
-        manage: model.manage,
-        hidePasswords: model.hidePasswords,
-        type: model.type,
-      }),
-    );
+    const collection = new Collection({
+      name: encryptedName,
+      id: model.id,
+      organizationId: model.organizationId as OrganizationId,
+    });
 
-    return new Collection(cd);
+    return collection;
   }
 
   // TODO: this should be private.
@@ -216,7 +208,12 @@ export class DefaultCollectionService implements CollectionService {
 
     collections.forEach((collection) => {
       decCollections.push(
-        from(collection.decrypt(orgKeys[collection.organizationId as OrganizationId])),
+        from(
+          collection.decrypt(
+            orgKeys[collection.organizationId as OrganizationId],
+            this.encryptService,
+          ),
+        ),
       );
     });
 

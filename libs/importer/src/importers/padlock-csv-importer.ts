@@ -2,12 +2,8 @@
 // @ts-strict-ignore
 // This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
 // eslint-disable-next-line no-restricted-imports
-import {
-  Collection,
-  CollectionData,
-  CollectionDetailsResponse,
-  CollectionView,
-} from "@bitwarden/admin-console/common";
+import { CollectionView } from "@bitwarden/admin-console/common";
+import { CollectionId } from "@bitwarden/common/types/guid";
 
 import { ImportResult } from "../models/import-result";
 
@@ -51,13 +47,11 @@ export class PadlockCsvImporter extends BaseImporter implements Importer {
             }
 
             if (addCollection) {
-              const cd = new CollectionData(
-                new CollectionDetailsResponse({
-                  name: tag,
-                  organizationId: this.organizationId,
-                }),
-              );
-              const collection = new CollectionView(new Collection(cd), tag);
+              const collection = new CollectionView({
+                name: tag,
+                organizationId: this.organizationId,
+                id: "" as CollectionId, //@TODO fix this, "" is not valid
+              });
               result.collections.push(collection);
             }
 

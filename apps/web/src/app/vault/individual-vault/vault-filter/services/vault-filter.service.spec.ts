@@ -8,9 +8,6 @@ import { mock, MockProxy } from "jest-mock-extended";
 import { firstValueFrom, of, ReplaySubject } from "rxjs";
 
 import {
-  Collection,
-  CollectionData,
-  CollectionDetailsResponse,
   CollectionService,
   CollectionType,
   CollectionTypes,
@@ -24,7 +21,7 @@ import { Organization } from "@bitwarden/common/admin-console/models/domain/orga
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
-import { UserId } from "@bitwarden/common/types/guid";
+import { CollectionId, UserId } from "@bitwarden/common/types/guid";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { FolderService } from "@bitwarden/common/vault/abstractions/folder/folder.service.abstraction";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
@@ -371,15 +368,16 @@ describe("vault filter service", () => {
     orgId: string,
     type?: CollectionType,
   ): CollectionView {
-    const cd = new CollectionData(
-      new CollectionDetailsResponse({
-        id,
-        name,
-        organizationId: orgId,
-        type: type || CollectionTypes.SharedCollection,
-      }),
-    );
-    const collection = new CollectionView(new Collection(cd), name);
+    const collection = new CollectionView({
+      id: id as CollectionId,
+      name,
+      organizationId: orgId,
+    });
+
+    if (type) {
+      collection.type = type;
+    }
+
     return collection;
   }
 });
