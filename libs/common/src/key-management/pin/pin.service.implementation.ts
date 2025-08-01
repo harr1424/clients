@@ -44,14 +44,16 @@ export class PinService implements PinServiceAbstraction {
             (await this.getPinLockType(userId)) === "EPHEMERAL" &&
             !(await this.isPinDecryptionAvailable(userId))
           ) {
-            this.logService.info("[Pin Service] After first unlock; Setting up ephemeral PIN");
+            this.logService.info("[Pin Service] After first unlock: Setting up ephemeral PIN");
             const pin = await this.getPin(userId);
             await this.setPin(pin, "EPHEMERAL", userId);
           } else if ((await this.getPinLockType(userId)) === "PERSISTENT") {
             // ----- ENCRYPTION MIGRATION -----
             // Pin-key encrypted user-keys are eagerly migrated to the new pin-protected user key envelope format.
             if ((await this.getLegacyPinKeyEncryptedUserKeyPersistent(userId)) != null) {
-              this.logService.info("[Pin Service] Migrating legacy PIN");
+              this.logService.info(
+                "[Pin Service] Migrating legacy PIN key to PinProtectedUserKeyEnvelope",
+              );
               const pin = await this.getPin(userId);
               await this.setPin(pin, "PERSISTENT", userId);
             }
@@ -174,6 +176,8 @@ export class PinService implements PinServiceAbstraction {
       (await this.getPinProtectedUserKeyPersistent(userId)) != null;
 
     if (hasPinProtectedKeyEnvelopeSet) {
+      this.logService.info("[Pin Service] Pin-unlock via PinProtectedUserKeyEnvelope");
+
       const pinLockType = await this.getPinLockType(userId);
       const envelope =
         pinLockType === "EPHEMERAL"
@@ -199,6 +203,7 @@ export class PinService implements PinServiceAbstraction {
         return null;
       }
     } else {
+      this.logService.info("[Pin Service] Pin-unlock via legacy PinKeyEncryptedUserKey");
       // This branch is deprecated and will be removed in the future, but is kept for migration.
       try {
         const pinKeyEncryptedUserKey = await this.getLegacyPinKeyEncryptedUserKeyPersistent(userId);
@@ -282,9 +287,9 @@ export class PinService implements PinServiceAbstraction {
   /// Anything below here is deprecated and will be removed subsequently
 
   async makePinKey(pin: string, salt: string, kdfConfig: KdfConfig): Promise<PinKey> {
-    const start = Date.now();
+    const startTime = performance.now();
     const pinKey = await this.keyGenerationService.deriveKeyFromPassword(pin, salt, kdfConfig);
-    this.logService.info(`[Pin Service] deriving pin key took ${Date.now() - start}ms`);
+    this.logService.measure(startTime, "Crypto", "PinService", "makePinKey");
 
     return (await this.keyGenerationService.stretchKey(pinKey)) as PinKey;
   }
