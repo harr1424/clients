@@ -33,7 +33,6 @@ import {
 } from "@bitwarden/common/platform/abstractions/fido2/fido2-active-request-manager.abstraction";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
-import { MessagingService } from "@bitwarden/common/platform/abstractions/messaging.service";
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { ThemeStateService } from "@bitwarden/common/platform/theming/theme-state.service";
@@ -82,6 +81,7 @@ import {
 } from "../utils";
 
 import { LockedVaultPendingNotificationsData } from "./abstractions/notification.background";
+import { ModifyLoginCipherFormData } from "./abstractions/overlay-notifications.background";
 import {
   BuildCipherDataParams,
   CloseInlineMenuMessage,
@@ -106,7 +106,6 @@ import {
   UpdateInlineMenuVisibilityMessage,
   UpdateOverlayCiphersParams,
 } from "./abstractions/overlay.background";
-import { ModifyLoginCipherFormData } from "./abstractions/overlay-notifications.background";
 
 export class OverlayBackground implements OverlayBackgroundInterface {
   private readonly openUnlockPopout = openUnlockPopout;
@@ -236,7 +235,6 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     private accountService: AccountService,
     private generatePasswordCallback: () => Promise<string>,
     private addPasswordCallback: (password: string) => Promise<void>,
-    private messagingService: MessagingService,
   ) {
     this.initOverlayEventObservables();
   }
@@ -1814,7 +1812,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
 
   /**
    * Triggers a fill of the generated password into the current tab. Will trigger
-   * a focus of the last focused field after filling the password.
+   * a  focus of the last focused field after filling the password.
    *
    * @param port - The port of the sender
    */
@@ -1857,7 +1855,11 @@ export class OverlayBackground implements OverlayBackgroundInterface {
       allowTotpAutofill: false,
     });
 
-    globalThis.setTimeout(async () => {}, 300);
+    globalThis.setTimeout(async () => {
+      if (await this.shouldShowSaveLoginInlineMenuList(port.sender.tab)) {
+        await this.openInlineMenu(port.sender, true);
+      }
+    }, 300);
   }
 
   /**

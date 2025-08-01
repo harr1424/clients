@@ -1257,6 +1257,7 @@ export default class MainBackground {
     this.overlayNotificationsBackground = new OverlayNotificationsBackground(
       this.logService,
       this.notificationBackground,
+      this.taskService,
       this.accountService,
       this.cipherService,
     );
@@ -1795,7 +1796,6 @@ export default class MainBackground {
       this.accountService,
       () => this.generatePassword(),
       (password) => this.addPasswordToHistory(password),
-      this.messagingService,
     );
 
     this.autofillBadgeUpdaterService = new AutofillBadgeUpdaterService(

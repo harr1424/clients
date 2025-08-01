@@ -6,6 +6,7 @@ import { AccountService } from "@bitwarden/common/auth/abstractions/account.serv
 import { CLEAR_NOTIFICATION_LOGIN_DATA_DURATION } from "@bitwarden/common/autofill/constants";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
+import { TaskService } from "@bitwarden/common/vault/tasks";
 
 import { BrowserApi } from "../../platform/browser/browser-api";
 import { NotificationType, NotificationTypes } from "../notification/abstractions/notification-bar";
@@ -21,7 +22,6 @@ import {
   WebsiteOriginsWithFields,
 } from "./abstractions/overlay-notifications.background";
 import NotificationBackground from "./notification.background";
-import { OverlayBackground } from "./overlay.background";
 
 export class OverlayNotificationsBackground implements OverlayNotificationsBackgroundInterface {
   private websiteOriginsWithFields: WebsiteOriginsWithFields = new Map();
@@ -34,15 +34,14 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
     formFieldSubmitted: ({ message, sender }) => this.storeModifiedLoginFormData(message, sender),
     collectPageDetailsResponse: ({ message, sender }) =>
       this.handleCollectPageDetailsResponse(message, sender),
-    passwordGenerated: ({ message, sender }) => this.handlePasswordGenerated(message, sender),
   };
 
   constructor(
     private logService: LogService,
     private notificationBackground: NotificationBackground,
+    private taskService: TaskService,
     private accountService: AccountService,
     private cipherService: CipherService,
-    private overlayBackground: OverlayBackground,
   ) {}
 
   /**
@@ -131,6 +130,7 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
     if (!this.websiteOriginsWithFields.has(sender.tab.id)) {
       return;
     }
+
     const { uri, username, password, newPassword } = message;
     if (!username && !password && !newPassword) {
       return;
@@ -227,21 +227,6 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
   }
 
   /**
-   * Triggers notifications in response to generated password.
-   *
-   * @param message OverlayNotificationsExtensionMessage
-   * @param sender chrome.runtime.MessageSender
-   */
-  private handlePasswordGenerated = async (
-    message: OverlayNotificationsExtensionMessage,
-    sender: chrome.runtime.MessageSender,
-  ) => {
-    const modifyLoginData = this.modifyLoginCipherFormData.get(sender.tab.id);
-
-    await this.processNotifications(sender.id, modifyLoginData, sender.tab);
-  };
-
-  /**
    * Handles the onBeforeRequest event for web requests. This is used to ensures that the following
    * onCompleted event is only triggered for form submission requests.
    *
@@ -264,11 +249,9 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
 
     const { requestId, tabId, frameId } = details;
     this.activeFormSubmissionRequests.add(requestId);
-    // TODO determine conditions for incomplete on before request.
+
     if (this.notificationDataIncompleteOnBeforeRequest(tabId)) {
       this.getFormFieldDataFromTab(tabId, frameId).catch((error) => this.logService.error(error));
-    } else {
-      this.clearCompletedWebRequest(requestId, tabId);
     }
   };
 
@@ -281,12 +264,11 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
    */
   private notificationDataIncompleteOnBeforeRequest = (tabId: number) => {
     const modifyLoginData = this.modifyLoginCipherFormData.get(tabId);
-    const result =
+    return (
       !modifyLoginData ||
       !this.shouldAttemptNotification(modifyLoginData, NotificationTypes.Add) ||
-      !this.shouldAttemptNotification(modifyLoginData, NotificationTypes.Change);
-
-    return result;
+      !this.shouldAttemptNotification(modifyLoginData, NotificationTypes.Change)
+    );
   };
 
   /**
@@ -423,29 +405,9 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
    * @param requestId - The details of the web response
    * @param modifyLoginData  - The modified login form data
    * @param tab - The tab details
-   *
-   * @returns result
    */
   private processNotifications = async (
     requestId: chrome.webRequest.ResourceRequest["requestId"],
-    modifyLoginData: ModifyLoginCipherFormData,
-    tab: chrome.tabs.Tab,
-  ) => {
-    const result = await this.maybeTriggerNotification(modifyLoginData, tab);
-    this.clearCompletedWebRequest(requestId, tab.id);
-    return result;
-  };
-
-  /**
-   * Does a check on modifyLoginData, which may trigger each notification type.
-   * Notification triggers may fail based on further criteria in "trigger{Type}Notification" fns.
-   *
-   * @param modifyLoginData ModifyLoginCipherFormData
-   * @param tab chrome.tabs.Tab
-   *
-   * @returns result
-   */
-  private maybeTriggerNotification = async (
     modifyLoginData: ModifyLoginCipherFormData,
     tab: chrome.tabs.Tab,
     config: { skippable: NotificationType[] } = { skippable: [] },

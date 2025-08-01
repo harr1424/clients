@@ -179,7 +179,7 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
     autofillFormsData: Record<string, AutofillForm>,
     autofillFieldsData: AutofillField[],
   ): AutofillPageDetails {
-    const pageDetails = {
+    return {
       title: document.title,
       url: (document.defaultView || globalThis).location.href,
       documentUrl: document.location.href,
@@ -187,8 +187,6 @@ export class CollectAutofillContentService implements CollectAutofillContentServ
       fields: autofillFieldsData,
       collectedTimestamp: Date.now(),
     };
-    console.log({ pageDetails });
-    return pageDetails;
   }
 
   /**
