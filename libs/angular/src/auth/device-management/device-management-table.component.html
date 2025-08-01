@@ -6,7 +6,6 @@
       [class]="column.headerClass"
       bitCell
       [bitSortable]="column.sortable ? column.name : ''"
-      [default]="column.name === 'loginStatus' ? 'desc' : false"
       scope="col"
       role="columnheader"
     >
@@ -24,12 +23,7 @@
 
       <div>
         @if (device.pendingAuthRequest) {
-          <a
-            bitLink
-            href="#"
-            appStopClick
-            (click)="approveOrDenyAuthRequest(device.pendingAuthRequest)"
-          >
+          <a bitLink href="#" appStopClick (click)="answerAuthRequest(device.pendingAuthRequest)">
             {{ device.displayName }}
           </a>
           <div class="tw-text-sm tw-text-muted">
