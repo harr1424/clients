@@ -2,11 +2,8 @@
 // @ts-strict-ignore
 import { Subject, switchMap, timer } from "rxjs";
 
-import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { CLEAR_NOTIFICATION_LOGIN_DATA_DURATION } from "@bitwarden/common/autofill/constants";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
-import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
-import { TaskService } from "@bitwarden/common/vault/tasks";
 
 import { BrowserApi } from "../../platform/browser/browser-api";
 import { NotificationType, NotificationTypes } from "../notification/abstractions/notification-bar";
@@ -39,9 +36,6 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
   constructor(
     private logService: LogService,
     private notificationBackground: NotificationBackground,
-    private taskService: TaskService,
-    private accountService: AccountService,
-    private cipherService: CipherService,
   ) {}
 
   /**

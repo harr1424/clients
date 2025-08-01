@@ -641,7 +641,6 @@ export default class NotificationBackground {
     }
 
     const ciphers = await this.cipherService.getAllDecryptedForUrl(changeData.url, activeUserId);
-
     if (changeData.currentPassword != null) {
       const passwordMatches = ciphers.filter(
         (c) => c.login.password === changeData.currentPassword,
