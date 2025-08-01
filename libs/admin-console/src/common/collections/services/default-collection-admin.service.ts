@@ -117,24 +117,20 @@ export class DefaultCollectionAdminService implements CollectionAdminService {
     }
 
     const promises = collections.map(async (c) => {
-      const cdr = new CollectionAccessDetailsResponse({
+      if (isCollectionAccessDetailsResponse(c)) {
+        c.name = await this.encryptService.decryptString(new EncString(c.name), orgKey);
+        return CollectionAdminView.fromCollectionAccessDetails(c);
+      }
+
+      const collectionAdminView = new CollectionAdminView({
         id: c.id,
         name: await this.encryptService.decryptString(new EncString(c.name), orgKey),
-        externalId: c.externalId,
         organizationId: c.organizationId,
       });
 
-      if (isCollectionAccessDetailsResponse(c)) {
-        cdr.groups = c.groups;
-        cdr.users = c.users;
-        cdr.assigned = c.assigned;
-        cdr.readOnly = c.readOnly;
-        cdr.hidePasswords = c.hidePasswords;
-        cdr.manage = c.manage;
-        cdr.unmanaged = c.unmanaged;
-      }
+      collectionAdminView.externalId = c.externalId;
 
-      return new CollectionAdminView(cdr);
+      return collectionAdminView;
     });
 
     return await Promise.all(promises);

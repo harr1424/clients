@@ -95,9 +95,9 @@ export class CollectionAdminView extends CollectionView {
     return this.id === Unassigned;
   }
 
-  static async fromCollectionAccessDetails(
+  static fromCollectionAccessDetails(
     collection: CollectionAccessDetailsResponse,
-  ): Promise<CollectionAdminView> {
+  ): CollectionAdminView {
     const v = new CollectionAdminView({ ...collection });
 
     v.groups = collection.groups

@@ -26,7 +26,6 @@ import {
   CollectionResponse,
   CollectionView,
   CollectionService,
-  CollectionAccessDetailsResponse,
 } from "@bitwarden/admin-console/common";
 import {
   getOrganizationById,
@@ -395,22 +394,21 @@ export class CollectionDialogComponent implements OnInit, OnDestroy {
     }
 
     const parent = this.formGroup.controls.parent?.value;
-    const collectionAccessDetailsRes = new CollectionAccessDetailsResponse({
+    const collectionView = new CollectionAdminView({
       id: this.params.collectionId as CollectionId,
-      externalId: this.formGroup.controls.externalId.value,
       organizationId: this.formGroup.controls.selectedOrg.value,
       name: parent
         ? `${parent}/${this.formGroup.controls.name.value}`
         : this.formGroup.controls.name.value,
-      groups: this.formGroup.controls.access.value
-        .filter((v) => v.type === AccessItemType.Group)
-        .map(convertToSelectionView),
-      users: this.formGroup.controls.access.value
-        .filter((v) => v.type === AccessItemType.Member)
-        .map(convertToSelectionView),
     });
+    collectionView.externalId = this.formGroup.controls.externalId.value;
+    collectionView.groups = this.formGroup.controls.access.value
+      .filter((v) => v.type === AccessItemType.Group)
+      .map(convertToSelectionView);
+    collectionView.users = this.formGroup.controls.access.value
+      .filter((v) => v.type === AccessItemType.Member)
+      .map(convertToSelectionView);
 
-    const collectionView = new CollectionAdminView(collectionAccessDetailsRes);
     const userId = await firstValueFrom(this.accountService.activeAccount$.pipe(getUserId));
     const savedCollection = await this.collectionAdminService.save(collectionView, userId);
 

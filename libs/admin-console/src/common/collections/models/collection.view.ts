@@ -108,9 +108,7 @@ export class CollectionView implements View, ITreeNodeObject {
     return view;
   }
 
-  static async fromCollectionAccessDetails(
-    collection: CollectionAccessDetailsResponse,
-  ): Promise<CollectionView> {
+  static fromCollectionAccessDetails(collection: CollectionAccessDetailsResponse): CollectionView {
     return new CollectionView({
       ...collection,
     });
