@@ -920,12 +920,6 @@ export class InlineMenuFieldQualificationService
    * @param field - The field to validate
    */
   isNewPasswordField = (field: AutofillField): boolean => {
-    console.log({ field });
-    console.log(
-      !this.fieldContainsAutocompleteValues(field, this.currentPasswordAutocompleteValue) &&
-        this.isPasswordField(field) &&
-        this.keywordsFoundInFieldData(field, this.accountCreationFieldKeywords),
-    );
     if (this.fieldContainsAutocompleteValues(field, this.currentPasswordAutocompleteValue)) {
       return false;
     }

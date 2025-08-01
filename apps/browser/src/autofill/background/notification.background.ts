@@ -626,13 +626,11 @@ export default class NotificationBackground {
     if (loginDomain == null) {
       return false;
     }
-    fnlog({ loginDomain });
 
     if ((await this.getAuthStatus()) < AuthenticationStatus.Unlocked) {
       await this.pushChangePasswordToQueue(null, loginDomain, changeData.newPassword, tab, true);
       return true;
     }
-    fnlog({ authStatus: await this.getAuthStatus() });
 
     let id: string = null;
     const activeUserId = await firstValueFrom(
@@ -643,7 +641,7 @@ export default class NotificationBackground {
     }
 
     const ciphers = await this.cipherService.getAllDecryptedForUrl(changeData.url, activeUserId);
-    fnlog({ ciphers }, ciphers.length);
+
     if (changeData.currentPassword != null) {
       const passwordMatches = ciphers.filter(
         (c) => c.login.password === changeData.currentPassword,
@@ -658,7 +656,6 @@ export default class NotificationBackground {
       await this.pushChangePasswordToQueue(id, loginDomain, changeData.newPassword, tab);
       return true;
     }
-    fnlog("got here");
     return false;
   }
 
