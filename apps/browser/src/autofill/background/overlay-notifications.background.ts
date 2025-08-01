@@ -1,6 +1,6 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
-import { filter, Subject, switchMap, timer } from "rxjs";
+import { Subject, switchMap, timer } from "rxjs";
 
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { CLEAR_NOTIFICATION_LOGIN_DATA_DURATION } from "@bitwarden/common/autofill/constants";
@@ -9,11 +9,11 @@ import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.servi
 
 import { BrowserApi } from "../../platform/browser/browser-api";
 import { NotificationType, NotificationTypes } from "../notification/abstractions/notification-bar";
-import { InlineMenuFormFieldData } from "../services/abstractions/autofill-overlay-content.service";
 import { generateDomainMatchPatterns, isInvalidResponseStatusCode } from "../utils";
 
 import {
   ActiveFormSubmissionRequests,
+  ModifyLoginCipherFormData,
   ModifyLoginCipherFormDataForTab,
   OverlayNotificationsBackground as OverlayNotificationsBackgroundInterface,
   OverlayNotificationsExtensionMessage,
@@ -28,7 +28,6 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
   private activeFormSubmissionRequests: ActiveFormSubmissionRequests = new Set();
   private modifyLoginCipherFormData: ModifyLoginCipherFormDataForTab = new Map();
   private clearLoginCipherFormDataSubject: Subject<void> = new Subject();
-  private logged$: Subject<void> = new Subject();
   private notificationFallbackTimeout: number | NodeJS.Timeout | null;
   private readonly formSubmissionRequestMethods: Set<string> = new Set(["POST", "PUT", "PATCH"]);
   private readonly extensionMessageHandlers: OverlayNotificationsExtensionMessageHandlers = {
@@ -55,10 +54,6 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
     this.clearLoginCipherFormDataSubject
       .pipe(switchMap(() => timer(CLEAR_NOTIFICATION_LOGIN_DATA_DURATION)))
       .subscribe(() => this.modifyLoginCipherFormData.clear());
-
-    this.logged$
-      .pipe(filter(({ message }) => message.uri.indexOf("localhost") > 0))
-      .subscribe((s) => this.logService.debug(s));
   }
 
   /**
@@ -133,28 +128,18 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
     message: OverlayNotificationsExtensionMessage,
     sender: chrome.runtime.MessageSender,
   ) => {
-    this.logged$.next({ message, sender });
-    this.logService.debug(
-      "!this.websiteOriginsWithFields.has(sender.tab.id)",
-      !this.websiteOriginsWithFields.has(sender.tab.id),
-    );
     if (!this.websiteOriginsWithFields.has(sender.tab.id)) {
-      this.logService.debug(this.websiteOriginsWithFields);
       return;
     }
-    this.logService.debug("got here A");
     const { uri, username, password, newPassword } = message;
-    this.logService.debug(uri, username, password, newPassword);
     if (!username && !password && !newPassword) {
       return;
     }
-    this.logService.debug("got here B");
 
     this.clearLoginCipherFormDataSubject.next();
     const formData = { uri, username, password, newPassword };
 
     const existingModifyLoginData = this.modifyLoginCipherFormData.get(sender.tab.id);
-    this.logService.debug({ existingModifyLoginData });
     if (existingModifyLoginData) {
       formData.username = formData.username || existingModifyLoginData.username;
       formData.password = formData.password || existingModifyLoginData.password;
@@ -251,7 +236,6 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
     message: OverlayNotificationsExtensionMessage,
     sender: chrome.runtime.MessageSender,
   ) => {
-    this.logService.debug("message received");
     const modifyLoginData = this.modifyLoginCipherFormData.get(sender.tab.id);
 
     await this.processNotifications(sender.id, modifyLoginData, sender.tab);
@@ -284,7 +268,6 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
     if (this.notificationDataIncompleteOnBeforeRequest(tabId)) {
       this.getFormFieldDataFromTab(tabId, frameId).catch((error) => this.logService.error(error));
     } else {
-      this.logService.debug("No incomplete, clearing");
       this.clearCompletedWebRequest(requestId, tabId);
     }
   };
@@ -350,7 +333,7 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
 
     const response = (await BrowserApi.tabSendMessage(
       tab,
-      { command: "getInlineMenuFormFieldData" },
+      { command: "getModifyLoginCipherFormData" },
       { frameId },
     )) as OverlayNotificationsExtensionMessage;
     if (response) {
@@ -398,7 +381,7 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
   private setupNotificationInitTrigger = async (
     tabId: number,
     requestId: string,
-    modifyLoginData: InlineMenuFormFieldData,
+    modifyLoginData: ModifyLoginCipherFormData,
   ) => {
     this.clearNotificationFallbackTimeout();
 
@@ -423,7 +406,7 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
   private delayNotificationInitUntilTabIsComplete = async (
     tabId: chrome.webRequest.ResourceRequest["tabId"],
     requestId: chrome.webRequest.ResourceRequest["requestId"],
-    modifyLoginData: InlineMenuFormFieldData,
+    modifyLoginData: ModifyLoginCipherFormData,
   ) => {
     const handleWebNavigationOnCompleted = async () => {
       chrome.webNavigation.onCompleted.removeListener(handleWebNavigationOnCompleted);
@@ -445,7 +428,7 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
    */
   private processNotifications = async (
     requestId: chrome.webRequest.ResourceRequest["requestId"],
-    modifyLoginData: InlineMenuFormFieldData,
+    modifyLoginData: ModifyLoginCipherFormData,
     tab: chrome.tabs.Tab,
   ) => {
     const result = await this.maybeTriggerNotification(modifyLoginData, tab);
@@ -463,7 +446,7 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
    * @returns result
    */
   private maybeTriggerNotification = async (
-    modifyLoginData: InlineMenuFormFieldData,
+    modifyLoginData: ModifyLoginCipherFormData,
     tab: chrome.tabs.Tab,
     config: { skippable: NotificationType[] } = { skippable: [] },
   ) => {
