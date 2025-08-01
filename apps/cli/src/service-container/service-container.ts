@@ -440,17 +440,6 @@ export class ServiceContainer {
       this.accountService,
     );
 
-    this.kdfConfigService = new DefaultKdfConfigService(this.stateProvider);
-    this.pinService = new PinService(
-      this.accountService,
-      this.cryptoFunctionService,
-      this.encryptService,
-      this.kdfConfigService,
-      this.keyGenerationService,
-      this.logService,
-      this.stateProvider,
-    );
-
     this.keyService = new KeyService(
       this.masterPasswordService,
       this.keyGenerationService,
@@ -466,7 +455,6 @@ export class ServiceContainer {
 
     this.pinService = new PinService(
       this.accountService,
-      this.cryptoFunctionService,
       this.encryptService,
       this.kdfConfigService,
       this.keyGenerationService,
