@@ -10,10 +10,6 @@
     font-size: 1rem;
   }
 
-  button {
-    // @extend .no-btn;
-  }
-
   h3,
   button.filter-button {
     margin: 0;
@@ -72,11 +68,6 @@
   display: flex;
   align-items: center;
 
-  button,
-  a {
-    // @extend .no-btn;
-  }
-
   .contents {
     display: contents;
   }
@@ -123,17 +114,6 @@
     margin-bottom: 0;
   }
 
-  a {
-  }
-  .show-active {
-    display: none;
-  }
-  li.active {
-    > .show-active,
-    > div .show-active {
-      display: inline;
-    }
-  }
   li.active {
     > button:first-of-type,
     > div button:first-of-type {
