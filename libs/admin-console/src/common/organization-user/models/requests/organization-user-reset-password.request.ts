@@ -18,7 +18,7 @@ export class OrganizationUserResetPasswordRequest {
   ): OrganizationUserResetPasswordRequest {
     const request = new OrganizationUserResetPasswordRequest();
     request.newMasterPasswordHash = authenticationData.masterPasswordAuthenticationHash;
-    request.key = unlockData.masterKeyWrappedUserKey.toEncryptedString();
+    request.key = unlockData.masterKeyWrappedUserKey;
     return request;
   }
 }

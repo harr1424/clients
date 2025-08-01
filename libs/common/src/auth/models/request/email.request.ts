@@ -20,7 +20,7 @@ export class EmailRequest extends EmailTokenRequest {
   ): EmailRequest {
     const request = new EmailRequest();
     request.newMasterPasswordHash = authenticationData.masterPasswordAuthenticationHash;
-    request.key = unlockData.masterKeyWrappedUserKey.toEncryptedString();
+    request.key = unlockData.masterKeyWrappedUserKey;
     return request;
   }
 }

@@ -53,7 +53,7 @@ export class SetPasswordRequest {
   ): SetPasswordRequest {
     const request = new SetPasswordRequest(
       authenticationData.masterPasswordAuthenticationHash,
-      unlockData.masterKeyWrappedUserKey.toEncryptedString(),
+      unlockData.masterKeyWrappedUserKey,
       masterPasswordHint,
       orgIdentifier,
       keys,

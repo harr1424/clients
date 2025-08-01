@@ -22,7 +22,7 @@ export class PasswordRequest extends SecretVerificationRequest {
   ): PasswordRequest {
     const request = new PasswordRequest();
     request.newMasterPasswordHash = authenticationData.masterPasswordAuthenticationHash;
-    request.key = unlockData.masterKeyWrappedUserKey.toEncryptedString();
+    request.key = unlockData.masterKeyWrappedUserKey;
     request.authenticationData = authenticationData;
     request.unlockData = unlockData;
     return request;
