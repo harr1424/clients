@@ -90,7 +90,7 @@ describe("ChangeKdfService", () => {
       masterPasswordService.makeMasterPasswordUnlockData.mockResolvedValueOnce({
         kdf: mockNewKdfConfig,
         salt: mockSalt,
-        masterKeyWrappedUserKey: mockWrappedUserKey as MasterKeyWrappedUserKey,
+        masterKeyWrappedUserKey: mockWrappedUserKey.encryptedString as MasterKeyWrappedUserKey,
       });
 
       await sut.updateUserKdfParams("masterPassword", mockNewKdfConfig, mockUserId);
