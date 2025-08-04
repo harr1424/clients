@@ -263,7 +263,7 @@ export class VaultFilterService implements VaultFilterServiceAbstraction {
   }
 
   protected getCollectionFilterHead(): TreeNode<CollectionFilter> {
-    const head = {} as CollectionFilter;
+    const head = CollectionView.vaultFilterHead() as CollectionFilter;
     return new TreeNode<CollectionFilter>(head, null, "collections", "AllCollections");
   }
 

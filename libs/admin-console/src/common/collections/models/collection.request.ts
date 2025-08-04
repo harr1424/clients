@@ -9,7 +9,7 @@ export class CollectionRequest {
 
   constructor(c: { name: EncString; externalId?: string }) {
     if (!c.name || !c.name.encryptedString) {
-      throw new Error("@TODO");
+      throw new Error("Name not provided for CollectionRequest.");
     }
 
     this.name = c.name.encryptedString;
