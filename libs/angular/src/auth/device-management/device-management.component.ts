@@ -237,11 +237,7 @@ export class DeviceManagementComponent implements OnInit {
     return metadata ? (categoryIconMap[metadata.category] ?? defaultIcon) : defaultIcon;
   }
 
-  protected async handleAuthRequestAnswered(pendingAuthRequest: DevicePendingAuthRequest | null) {
-    if (pendingAuthRequest == null) {
-      return;
-    }
-
+  protected async handleAuthRequestAnswered(pendingAuthRequest: DevicePendingAuthRequest) {
     const loginApprovalDialog = LoginApprovalDialogComponent.open(this.dialogService, {
       notificationId: pendingAuthRequest.id,
     });

@@ -19,6 +19,9 @@ export class DeviceManagementItemGroupComponent {
   @Output() onAuthRequestAnswered = new EventEmitter<DevicePendingAuthRequest>();
 
   protected answerAuthRequest(pendingAuthRequest: DevicePendingAuthRequest | null) {
+    if (pendingAuthRequest == null) {
+      return;
+    }
     this.onAuthRequestAnswered.emit(pendingAuthRequest);
   }
 }

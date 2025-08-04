@@ -57,6 +57,9 @@ export class DeviceManagementTableComponent implements OnChanges {
   }
 
   protected answerAuthRequest(pendingAuthRequest: DevicePendingAuthRequest | null) {
+    if (pendingAuthRequest == null) {
+      return;
+    }
     this.onAuthRequestAnswered.emit(pendingAuthRequest);
   }
 }
