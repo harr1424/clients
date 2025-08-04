@@ -5,9 +5,6 @@ import { firstValueFrom } from "rxjs";
 
 // This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
 // eslint-disable-next-line no-restricted-imports
-import { LoginApprovalComponent } from "@bitwarden/auth/angular";
-// This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
-// eslint-disable-next-line no-restricted-imports
 import { AuthRequestApiServiceAbstraction } from "@bitwarden/auth/common";
 import { DevicesServiceAbstraction } from "@bitwarden/common/auth/abstractions/devices/devices.service.abstraction";
 import {
@@ -21,6 +18,8 @@ import { ValidationService } from "@bitwarden/common/platform/abstractions/valid
 import { MessageListener } from "@bitwarden/common/platform/messaging";
 import { ButtonModule, DialogService, PopoverModule } from "@bitwarden/components";
 import { I18nPipe } from "@bitwarden/ui-common";
+
+import { LoginApprovalDialogComponent } from "../login-approval";
 
 import { DeviceManagementComponentServiceAbstraction } from "./device-management-component.service.abstraction";
 import { DeviceManagementItemGroupComponent } from "./device-management-item-group.component";
@@ -243,7 +242,7 @@ export class DeviceManagementComponent implements OnInit {
       return;
     }
 
-    const loginApprovalDialog = LoginApprovalComponent.open(this.dialogService, {
+    const loginApprovalDialog = LoginApprovalDialogComponent.open(this.dialogService, {
       notificationId: pendingAuthRequest.id,
     });
 
