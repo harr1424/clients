@@ -4,7 +4,6 @@ import {
   first,
   firstValueFrom,
   forkJoin,
-  from,
   map,
   Observable,
   of,
@@ -101,12 +100,11 @@ export class CriticalAppsService {
 
   // Get the critical apps for a given organization
   setOrganizationId(orgId: OrganizationId, userId: UserId) {
-    this.orgId.next(orgId);
-
     this.orgKey$ = this.keyService.orgKeys$(userId).pipe(
       filter((OrgKeys) => !!OrgKeys),
       map((organizationKeysById) => organizationKeysById[orgId as OrganizationId]),
     );
+    this.orgId.next(orgId);
   }
 
   // Drop a critical app for a given organization
@@ -135,10 +133,7 @@ export class CriticalAppsService {
       return of([]);
     }
 
-    const result$ = zip(
-      this.criticalAppsApiService.getCriticalApps(orgId),
-      from(this.keyService.getOrgKey(orgId)),
-    ).pipe(
+    const result$ = zip(this.criticalAppsApiService.getCriticalApps(orgId), this.orgKey$).pipe(
       switchMap(([response, key]) => {
         if (key == null) {
           throw new Error("Organization key not found");
