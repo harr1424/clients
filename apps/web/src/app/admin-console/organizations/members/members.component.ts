@@ -13,7 +13,6 @@ import {
   Observable,
   shareReplay,
   switchMap,
-  withLatestFrom,
   tap,
 } from "rxjs";
 
@@ -86,10 +85,6 @@ import {
   openUserAddEditDialog,
 } from "./components/member-dialog";
 import { isFixedSeatPlan } from "./components/member-dialog/validators/org-seat-limit-reached.validator";
-import {
-  ResetPasswordComponent,
-  ResetPasswordDialogResult,
-} from "./components/reset-password.component";
 import { DeleteManagedMemberWarningService } from "./services/delete-managed-member/delete-managed-member-warning.service";
 import { OrganizationUserService } from "./services/organization-user/organization-user.service";
 
@@ -314,10 +309,13 @@ export class MembersComponent extends BaseMembersComponent<OrganizationUserView>
       ),
     );
 
-    const decryptedCollections$ = this.accountService.activeAccount$.pipe(
-      getUserId,
-      switchMap((userId) => this.keyService.orgKeys$(userId)),
-      withLatestFrom(response),
+    const decryptedCollections$ = combineLatest([
+      this.accountService.activeAccount$.pipe(
+        getUserId,
+        switchMap((userId) => this.keyService.orgKeys$(userId)),
+      ),
+      response,
+    ]).pipe(
       switchMap(([orgKeys, collections]) =>
         this.collectionService.decryptMany$(collections, orgKeys),
       ),
@@ -767,52 +765,32 @@ export class MembersComponent extends BaseMembersComponent<OrganizationUserView>
   }
 
   async resetPassword(user: OrganizationUserView) {
-    const changePasswordRefactorFlag = await this.configService.getFeatureFlag(
-      FeatureFlag.PM16117_ChangeExistingPasswordRefactor,
-    );
-
-    if (changePasswordRefactorFlag) {
-      if (!user || !user.email || !user.id) {
-        this.toastService.showToast({
-          variant: "error",
-          title: this.i18nService.t("errorOccurred"),
-          message: this.i18nService.t("orgUserDetailsNotFound"),
-        });
-        this.logService.error("Org user details not found when attempting account recovery");
-
-        return;
-      }
-
-      const dialogRef = AccountRecoveryDialogComponent.open(this.dialogService, {
-        data: {
-          name: this.userNamePipe.transform(user),
-          email: user.email,
-          organizationId: this.organization.id as OrganizationId,
-          organizationUserId: user.id,
-        },
+    if (!user || !user.email || !user.id) {
+      this.toastService.showToast({
+        variant: "error",
+        title: this.i18nService.t("errorOccurred"),
+        message: this.i18nService.t("orgUserDetailsNotFound"),
       });
-
-      const result = await lastValueFrom(dialogRef.closed);
-      if (result === AccountRecoveryDialogResultType.Ok) {
-        await this.load();
-      }
+      this.logService.error("Org user details not found when attempting account recovery");
 
       return;
     }
 
-    const dialogRef = ResetPasswordComponent.open(this.dialogService, {
+    const dialogRef = AccountRecoveryDialogComponent.open(this.dialogService, {
       data: {
         name: this.userNamePipe.transform(user),
-        email: user != null ? user.email : null,
+        email: user.email,
         organizationId: this.organization.id as OrganizationId,
-        id: user != null ? user.id : null,
+        organizationUserId: user.id,
       },
     });
 
     const result = await lastValueFrom(dialogRef.closed);
-    if (result === ResetPasswordDialogResult.Ok) {
+    if (result === AccountRecoveryDialogResultType.Ok) {
       await this.load();
     }
+
+    return;
   }
 
   protected async removeUserConfirmationDialog(user: OrganizationUserView) {
