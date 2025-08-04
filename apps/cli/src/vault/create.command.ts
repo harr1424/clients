@@ -5,7 +5,7 @@ import * as path from "path";
 
 import { firstValueFrom, map } from "rxjs";
 
-import { CollectionRequest } from "@bitwarden/admin-console/common";
+import { CollectionRequest, CollectionView } from "@bitwarden/admin-console/common";
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { OrganizationService } from "@bitwarden/common/admin-console/abstractions/organization/organization.service.abstraction";
 import { SelectionReadOnlyRequest } from "@bitwarden/common/admin-console/models/request/selection-read-only.request";
@@ -233,14 +233,22 @@ export class CreateCommand {
           : req.users.map(
               (u) => new SelectionReadOnlyRequest(u.id, u.readOnly, u.hidePasswords, u.manage),
             );
-      const request = new CollectionRequest();
-      request.name = (await this.encryptService.encryptString(req.name, orgKey)).encryptedString;
-      request.externalId = req.externalId;
+      const request = new CollectionRequest({
+        name: await this.encryptService.encryptString(req.name, orgKey),
+        externalId: req.externalId,
+      });
       request.groups = groups;
       request.users = users;
       const response = await this.apiService.postCollection(req.organizationId, request);
-      const view = CollectionExport.toView(req);
-      view.id = response.id;
+      const view = CollectionExport.toView(
+        req,
+        new CollectionView({
+          name: request.name,
+          id: response.id,
+          organizationId: req.organizationId,
+        }),
+      );
+      view.externalId = request.externalId;
       const res = new OrganizationCollectionResponse(view, groups, users);
       return Response.success(res);
     } catch (e) {

@@ -452,6 +452,7 @@ export class GetCommand extends DownloadCommand {
         const orgKeys = await firstValueFrom(this.keyService.activeUserOrgKeys$);
         decCollection = await collection.decrypt(
           orgKeys[collection.organizationId as OrganizationId],
+          this.encryptService,
         );
       }
     } else if (id.trim() !== "") {

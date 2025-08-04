@@ -15,7 +15,6 @@ import {
   BulkCollectionAccessRequest,
   CollectionAccessSelectionView,
   CollectionAdminView,
-  Collection,
 } from "../models";
 
 export class DefaultCollectionAdminService implements CollectionAdminService {
@@ -146,12 +145,10 @@ export class DefaultCollectionAdminService implements CollectionAdminService {
       throw new Error("No key for this collection's organization.");
     }
 
-    const collectionRequest = new CollectionRequest(
-      new Collection({
-        ...model,
-        name: await this.encryptService.encryptString(model.name, key),
-      }),
-    );
+    const collectionRequest = new CollectionRequest({
+      name: await this.encryptService.encryptString(model.name, key),
+      externalId: model.externalId,
+    });
 
     collectionRequest.groups = model.groups.map(
       (group) =>

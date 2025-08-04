@@ -1,6 +1,5 @@
 import { SelectionReadOnlyRequest } from "@bitwarden/common/admin-console/models/request/selection-read-only.request";
-
-import { Collection } from "./collection";
+import { EncString } from "@bitwarden/common/key-management/crypto/models/enc-string";
 
 export class CollectionRequest {
   name: string;
@@ -8,12 +7,12 @@ export class CollectionRequest {
   groups: SelectionReadOnlyRequest[] = [];
   users: SelectionReadOnlyRequest[] = [];
 
-  constructor(collection: Collection) {
-    if (collection == null || collection.name == null || collection.name.encryptedString == null) {
-      throw new Error("todo");
+  constructor(c: { name: EncString; externalId?: string }) {
+    if (!c.name || !c.name.encryptedString) {
+      throw new Error("@TODO");
     }
 
-    this.name = collection.name.encryptedString;
-    this.externalId = collection.externalId;
+    this.name = c.name.encryptedString;
+    this.externalId = c.externalId;
   }
 }
