@@ -103,7 +103,7 @@ export class CollectionView implements View, ITreeNodeObject {
       new CollectionView({ ...collection, name: "" }),
       collection,
     );
-    view.name = await collection.name.decryptWithKey(key, encryptService);
+    view.name = await encryptService.decryptString(collection.name, key);
     view.assigned = true;
     return view;
   }
