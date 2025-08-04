@@ -32,7 +32,11 @@
       >
         <i
           class="tw-text-muted bwi bwi-lg {{ data.icon }}"
-          [ngStyle]="{ color: coloredIcon() ? 'rgb(var(--color-illustration-outline))' : null }"
+          [ngStyle]="{
+            color: coloredIcon() ? 'rgb(var(--color-illustration-outline))' : null,
+            width: data.icon?.startsWith('credit-card') && coloredIcon() ? '36px' : null,
+            height: data.icon?.startsWith('credit-card') && coloredIcon() ? '30px' : null,
+          }"
         ></i>
       </div>
     }
