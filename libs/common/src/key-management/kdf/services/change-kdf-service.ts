@@ -1,4 +1,5 @@
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
+import { assertNonNullish } from "@bitwarden/common/auth/utils";
 import { KdfRequest } from "@bitwarden/common/models/request/kdf.request";
 import { UserId } from "@bitwarden/common/types/guid";
 // eslint-disable-next-line no-restricted-imports
@@ -17,6 +18,10 @@ export class ChangeKdfService implements ChangeKdfServiceAbstraction {
   ) {}
 
   async updateUserKdfParams(masterPassword: string, kdf: KdfConfig, userId: UserId): Promise<void> {
+    assertNonNullish(masterPassword, "masterPassword");
+    assertNonNullish(kdf, "kdf");
+    assertNonNullish(userId, "userId");
+
     const userKey = await firstValueFromOrThrow(this.keyService.userKey$(userId), "userKey");
     const salt = await firstValueFromOrThrow(
       this.masterPasswordService.saltForUser$(userId),
