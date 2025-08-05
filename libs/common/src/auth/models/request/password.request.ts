@@ -16,6 +16,7 @@ export class PasswordRequest extends SecretVerificationRequest {
   unlockData?: MasterPasswordUnlockData;
 
   // This will eventually be changed to be an actual constructor, once all callers are updated.
+  // https://bitwarden.atlassian.net/browse/PM-23234
   static newConstructor(
     authenticationData: MasterPasswordAuthenticationData,
     unlockData: MasterPasswordUnlockData,

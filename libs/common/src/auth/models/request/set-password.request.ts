@@ -49,6 +49,7 @@ export class SetPasswordRequest {
 
   // This will eventually be changed to be an actual constructor, once all callers are updated.
   // The body of this request will be changed to carry the authentication data and unlock data.
+  // https://bitwarden.atlassian.net/browse/PM-23234
   static newConstructor(
     authenticationData: MasterPasswordAuthenticationData,
     unlockData: MasterPasswordUnlockData,
