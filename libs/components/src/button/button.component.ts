@@ -8,11 +8,11 @@ import {
   booleanAttribute,
   inject,
   ElementRef,
-  Signal,
 } from "@angular/core";
 import { toObservable, toSignal } from "@angular/core/rxjs-interop";
 import { debounce, interval } from "rxjs";
 
+import { AriaDisabledTrapDirective } from "../a11y";
 import { ButtonLikeAbstraction, ButtonType, ButtonSize } from "../shared/button-like.abstraction";
 import { ariaDisableElement } from "../utils";
 
@@ -64,6 +64,7 @@ const buttonStyles: Record<ButtonType, string[]> = {
   host: {
     "[attr.aria-disabled]": "disabledAttr()",
   },
+  hostDirectives: [AriaDisabledTrapDirective],
 })
 export class ButtonComponent implements ButtonLikeAbstraction {
   @HostBinding("class") get classList() {
@@ -95,7 +96,7 @@ export class ButtonComponent implements ButtonLikeAbstraction {
             ]
           : [],
       )
-      .concat(buttonStyles[this.buttonType ?? "secondary"])
+      .concat(buttonStyles[this.buttonType() ?? "secondary"])
       .concat(buttonSizeStyles[this.size() || "default"]);
   }
 
@@ -144,6 +145,6 @@ export class ButtonComponent implements ButtonLikeAbstraction {
   private el = inject(ElementRef<HTMLButtonElement>);
 
   constructor() {
-    ariaDisableElement(this.el.nativeElement, this.disabledAttr as Signal<boolean | undefined>);
+    ariaDisableElement(this.el.nativeElement, this.disabledAttr());
   }
 }

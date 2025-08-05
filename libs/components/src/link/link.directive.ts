@@ -1,6 +1,7 @@
 import { input, HostBinding, Directive, inject, ElementRef, booleanAttribute } from "@angular/core";
 
 import { ariaDisableElement } from "../utils";
+import { AriaDisabledTrapDirective } from "../a11y";
 
 export type LinkType = "primary" | "secondary" | "contrast" | "light";
 
@@ -93,6 +94,7 @@ export class AnchorLinkDirective extends LinkDirective {
 
 @Directive({
   selector: "button[bitLink]",
+  hostDirectives: [AriaDisabledTrapDirective],
 })
 export class ButtonLinkDirective extends LinkDirective {
   private el = inject(ElementRef<HTMLButtonElement>);
@@ -108,6 +110,6 @@ export class ButtonLinkDirective extends LinkDirective {
   constructor() {
     super();
 
-    ariaDisableElement(this.el.nativeElement, this.disabled);
+    ariaDisableElement(this.el.nativeElement, this.disabled());
   }
 }

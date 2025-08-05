@@ -15,11 +15,12 @@ import { BitwardenToastrGlobalConfig, ToastModule } from "./toast.module";
 import { ToastOptions, ToastService } from "./toast.service";
 
 const toastServiceExampleTemplate = `
-  <button bitButton type="button" (click)="toastService.showToast(toastOptions)">Show Toast</button>
+  <button bitButton disabled type="button" (click)="toastService.showToast(toastOptions)">Show Toast</button>
 `;
 @Component({
   selector: "toast-service-example",
   template: toastServiceExampleTemplate,
+  imports: [ButtonModule],
 })
 export class ToastServiceExampleComponent {
   @Input()

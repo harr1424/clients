@@ -1,19 +1,11 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 import { NgClass } from "@angular/common";
-import {
-  Component,
-  computed,
-  ElementRef,
-  HostBinding,
-  inject,
-  input,
-  model,
-  Signal,
-} from "@angular/core";
+import { Component, computed, ElementRef, HostBinding, inject, input, model } from "@angular/core";
 import { toObservable, toSignal } from "@angular/core/rxjs-interop";
 import { debounce, interval } from "rxjs";
 
+import { AriaDisabledTrapDirective } from "../a11y";
 import { ButtonLikeAbstraction, ButtonType } from "../shared/button-like.abstraction";
 import { FocusableElement } from "../shared/focusable-element";
 import { ariaDisableElement } from "../utils";
@@ -175,6 +167,7 @@ const sizes: Record<IconButtonSize, string[]> = {
   host: {
     "[attr.aria-disabled]": "disabledAttr()",
   },
+  hostDirectives: [AriaDisabledTrapDirective],
 })
 export class BitIconButtonComponent implements ButtonLikeAbstraction, FocusableElement {
   readonly icon = model<string>(undefined, { alias: "bitIconButton" });
@@ -249,6 +242,6 @@ export class BitIconButtonComponent implements ButtonLikeAbstraction, FocusableE
 
   constructor() {
     const element = this.elementRef.nativeElement;
-    ariaDisableElement(element, this.disabledAttr as Signal<boolean | undefined>);
+    ariaDisableElement(element, this.disabledAttr());
   }
 }
