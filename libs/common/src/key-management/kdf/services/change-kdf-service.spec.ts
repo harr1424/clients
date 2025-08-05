@@ -2,7 +2,6 @@ import { mock } from "jest-mock-extended";
 import { of } from "rxjs";
 
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
-import { KdfRequest } from "@bitwarden/common/models/request/kdf.request";
 import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
 import { UserId } from "@bitwarden/common/types/guid";
 import { UserKey } from "@bitwarden/common/types/key";
@@ -46,6 +45,46 @@ describe("ChangeKdfService", () => {
   });
 
   describe("updateUserKdfParams", () => {
+    it("should throw an error if masterPassword is null", async () => {
+      await expect(
+        sut.updateUserKdfParams(null as unknown as string, mockNewKdfConfig, mockUserId),
+      ).rejects.toThrow("masterPassword");
+    });
+
+    it("should throw an error if masterPassword is undefined", async () => {
+      await expect(
+        sut.updateUserKdfParams(undefined as unknown as string, mockNewKdfConfig, mockUserId),
+      ).rejects.toThrow("masterPassword");
+    });
+
+    it("should throw an error if kdf is null", async () => {
+      await expect(
+        sut.updateUserKdfParams("masterPassword", null as unknown as PBKDF2KdfConfig, mockUserId),
+      ).rejects.toThrow("kdf");
+    });
+
+    it("should throw an error if kdf is undefined", async () => {
+      await expect(
+        sut.updateUserKdfParams(
+          "masterPassword",
+          undefined as unknown as PBKDF2KdfConfig,
+          mockUserId,
+        ),
+      ).rejects.toThrow("kdf");
+    });
+
+    it("should throw an error if userId is null", async () => {
+      await expect(
+        sut.updateUserKdfParams("masterPassword", mockNewKdfConfig, null as unknown as UserId),
+      ).rejects.toThrow("userId");
+    });
+
+    it("should throw an error if userId is undefined", async () => {
+      await expect(
+        sut.updateUserKdfParams("masterPassword", mockNewKdfConfig, undefined as unknown as UserId),
+      ).rejects.toThrow("userId");
+    });
+
     it("should throw an error if userKey is null", async () => {
       keyService.userKey$.mockReturnValueOnce(of(null));
       masterPasswordService.saltForUser$.mockReturnValueOnce(of(mockSalt));
@@ -98,7 +137,7 @@ describe("ChangeKdfService", () => {
       expect(apiService.send).toHaveBeenCalledWith(
         "POST",
         "/accounts/kdf",
-                expect.objectContaining({
+        expect.objectContaining({
           newMasterPasswordHash: mockNewHash,
           key: mockWrappedUserKey.encryptedString,
           authenticationData: {
