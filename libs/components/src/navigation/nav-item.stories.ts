@@ -92,7 +92,7 @@ export const WithChildButtons: Story = {
           slot="end"
           class="tw-ms-auto"
           [bitIconButton]="'bwi-pencil-square'"
-          [buttonType]="'light'"
+          [buttonType]="'nav-contrast'"
           size="small"
           label="Edit"
         ></button>
@@ -100,7 +100,7 @@ export const WithChildButtons: Story = {
           slot="end"
           class="tw-ms-auto"
           [bitIconButton]="'bwi-check'"
-          [buttonType]="'light'"
+          [buttonType]="'nav-contrast'"
           size="small"
           label="Confirm"
         ></button>
