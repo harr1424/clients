@@ -98,7 +98,20 @@ describe("ChangeKdfService", () => {
       expect(apiService.send).toHaveBeenCalledWith(
         "POST",
         "/accounts/kdf",
-        expect.any(KdfRequest),
+                expect.objectContaining({
+          newMasterPasswordHash: mockNewHash,
+          key: mockWrappedUserKey.encryptedString,
+          authenticationData: {
+            salt: mockSalt,
+            kdf: mockNewKdfConfig,
+            masterPasswordAuthenticationHash: mockNewHash,
+          },
+          unlockData: {
+            kdf: mockNewKdfConfig,
+            salt: mockSalt,
+            masterKeyWrappedUserKey: mockWrappedUserKey.encryptedString as MasterKeyWrappedUserKey,
+          },
+        }),
         true,
         false,
       );
