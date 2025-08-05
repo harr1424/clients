@@ -2,9 +2,10 @@
 // @ts-strict-ignore
 import { Component, Inject } from "@angular/core";
 import { FormGroup, FormControl, Validators } from "@angular/forms";
-import { firstValueFrom, map } from "rxjs";
+import { firstValueFrom } from "rxjs";
 
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
+import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { ChangeKdfServiceAbstraction } from "@bitwarden/common/key-management/kdf/abstractions/change-kdf-service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { MessagingService } from "@bitwarden/common/platform/abstractions/messaging.service";
@@ -63,9 +64,7 @@ export class ChangeKdfConfirmationComponent {
     // Ensure the KDF config is valid.
     this.kdfConfig.validateKdfConfigForSetting();
 
-    const activeAccountId = await firstValueFrom(
-      this.accountService.activeAccount$.pipe(map((a) => a?.id)),
-    );
+    const activeAccountId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
     await this.changeKdfService.updateUserKdfParams(
       masterPassword,
       this.kdfConfig,

@@ -5,7 +5,7 @@ import {
   MasterPasswordUnlockData,
 } from "@bitwarden/common/key-management/master-password/types/master-password.types";
 // eslint-disable-next-line no-restricted-imports
-import { KdfType } from "@bitwarden/key-management";
+import { KdfConfig, KdfType } from "@bitwarden/key-management";
 
 import { KeysRequest } from "../../../models/request/keys.request";
 
@@ -26,20 +26,25 @@ export class SetPasswordRequest {
     masterPasswordHint: string,
     orgIdentifier: string,
     keys: KeysRequest | null,
-    kdf: KdfType,
-    kdfIterations: number,
-    kdfMemory?: number,
-    kdfParallelism?: number,
+    kdf: KdfConfig,
   ) {
     this.masterPasswordHash = masterPasswordHash;
     this.key = key;
     this.masterPasswordHint = masterPasswordHint;
-    this.kdf = kdf;
-    this.kdfIterations = kdfIterations;
-    this.kdfMemory = kdfMemory;
-    this.kdfParallelism = kdfParallelism;
     this.orgIdentifier = orgIdentifier;
     this.keys = keys;
+
+    if (kdf.kdfType === KdfType.PBKDF2_SHA256) {
+      this.kdf = KdfType.PBKDF2_SHA256;
+      this.kdfIterations = kdf.iterations;
+    } else if (kdf.kdfType === KdfType.Argon2id) {
+      this.kdf = KdfType.Argon2id;
+      this.kdfIterations = kdf.iterations;
+      this.kdfMemory = kdf.memory;
+      this.kdfParallelism = kdf.parallelism;
+    } else {
+      throw new Error(`Unsupported KDF type: ${kdf}`);
+    }
   }
 
   // This will eventually be changed to be an actual constructor, once all callers are updated.
@@ -57,10 +62,7 @@ export class SetPasswordRequest {
       masterPasswordHint,
       orgIdentifier,
       keys,
-      authenticationData.kdf.kdfType,
-      authenticationData.kdf.iterations,
-      authenticationData.kdf.memory,
-      authenticationData.kdf.parallelism,
+      unlockData.kdf,
     );
     return request;
   }
