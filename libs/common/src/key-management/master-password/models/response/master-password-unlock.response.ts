@@ -22,14 +22,14 @@ export class MasterPasswordUnlockResponse extends BaseResponse {
 
     this.kdf = new KdfConfigResponse(this.getResponseProperty("Kdf"));
 
-    const masterKeyWrappedUserKey = this.getResponseProperty("MasterKeyWrappedUserKey");
-    if (masterKeyWrappedUserKey == null || typeof masterKeyWrappedUserKey !== "string") {
+    const masterKeyEncryptedUserKey = this.getResponseProperty("MasterKeyEncryptedUserKey");
+    if (masterKeyEncryptedUserKey == null || typeof masterKeyEncryptedUserKey !== "string") {
       throw new Error(
-        "MasterPasswordUnlockResponse does not contain a valid master key wrapped user key",
+        "MasterPasswordUnlockResponse does not contain a valid master key encrypted user key",
       );
     }
     this.masterKeyWrappedUserKey = new EncString(
-      masterKeyWrappedUserKey,
+      masterKeyEncryptedUserKey,
     ) as MasterKeyWrappedUserKey;
   }
 }
