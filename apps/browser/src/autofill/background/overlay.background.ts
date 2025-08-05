@@ -1812,7 +1812,7 @@ export class OverlayBackground implements OverlayBackgroundInterface {
 
   /**
    * Triggers a fill of the generated password into the current tab. Will trigger
-   * a  focus of the last focused field after filling the password.
+   * a focus of the last focused field after filling the password.
    *
    * @param port - The port of the sender
    */
@@ -1856,10 +1856,16 @@ export class OverlayBackground implements OverlayBackgroundInterface {
     });
 
     globalThis.setTimeout(async () => {
-      if (await this.shouldShowSaveLoginInlineMenuList(port.sender.tab)) {
-        await this.openInlineMenu(port.sender, true);
-      }
-    }, 300);
+      await BrowserApi.tabSendMessage(
+        port.sender.tab,
+        {
+          command: "generatedPasswordModifyLogin",
+        },
+        {
+          frameId: this.focusedFieldData.frameId || 0,
+        },
+      );
+    }, 150);
   }
 
   /**

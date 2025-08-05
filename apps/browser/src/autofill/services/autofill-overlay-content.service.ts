@@ -12,6 +12,7 @@ import {
 } from "@bitwarden/common/autofill/constants";
 import { CipherType } from "@bitwarden/common/vault/enums";
 
+import { ModifyLoginCipherFormData } from "../background/abstractions/overlay-notifications.background";
 import {
   FocusedFieldData,
   NewCardCipherData,
@@ -54,7 +55,6 @@ import { DomElementVisibilityService } from "./abstractions/dom-element-visibili
 import { DomQueryService } from "./abstractions/dom-query.service";
 import { InlineMenuFieldQualificationService } from "./abstractions/inline-menu-field-qualifications.service";
 import { AutoFillConstants } from "./autofill-constants";
-import { ModifyLoginCipherFormData } from "../background/abstractions/overlay-notifications.background";
 
 export class AutofillOverlayContentService implements AutofillOverlayContentServiceInterface {
   pageDetailsUpdateRequired = false;
@@ -95,6 +95,7 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
     destroyAutofillInlineMenuListeners: () => this.destroy(),
     getInlineMenuFormFieldData: ({ message }) =>
       this.handleGetInlineMenuFormFieldDataMessage(message),
+    generatedPasswordModifyLogin: () => this.sendGeneratedPasswordModifyLogin(),
   };
   private readonly loginFieldQualifiers: Record<string, CallableFunction> = {
     [AutofillFieldQualifier.username]: this.inlineMenuFieldQualificationService.isUsernameField,
@@ -234,6 +235,13 @@ export class AutofillOverlayContentService implements AutofillOverlayContentServ
       }
     });
   }
+
+  /**
+   * On password generation, send form field data i.e. modified login data
+   */
+  sendGeneratedPasswordModifyLogin = async () => {
+    await this.sendExtensionMessage("generatedPasswordFilled", this.getFormFieldData());
+  };
 
   /**
    * Formats any found user filled fields for a login cipher and sends a message
