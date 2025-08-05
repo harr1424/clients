@@ -28,6 +28,8 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
   private notificationFallbackTimeout: number | NodeJS.Timeout | null;
   private readonly formSubmissionRequestMethods: Set<string> = new Set(["POST", "PUT", "PATCH"]);
   private readonly extensionMessageHandlers: OverlayNotificationsExtensionMessageHandlers = {
+    generatedPasswordFilled: ({ message, sender }) =>
+      this.storeModifiedLoginFormData(message, sender),
     formFieldSubmitted: ({ message, sender }) => this.storeModifiedLoginFormData(message, sender),
     collectPageDetailsResponse: ({ message, sender }) =>
       this.handleCollectPageDetailsResponse(message, sender),
@@ -436,7 +438,7 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
       }
     }
 
-    this.clearCompletedWebRequest(requestId, tab);
+    this.clearCompletedWebRequest(requestId, tab.id);
     return results.join(" ");
   };
 
