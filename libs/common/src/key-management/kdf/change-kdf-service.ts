@@ -1,22 +1,30 @@
-import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { assertNonNullish } from "@bitwarden/common/auth/utils";
-import { KdfRequest } from "@bitwarden/common/models/request/kdf.request";
 import { UserId } from "@bitwarden/common/types/guid";
 // eslint-disable-next-line no-restricted-imports
 import { KdfConfig, KdfConfigService, KeyService } from "@bitwarden/key-management";
 
-import { MasterPasswordServiceAbstraction } from "../../master-password/abstractions/master-password.service.abstraction";
-import { firstValueFromOrThrow } from "../../utils";
-import { ChangeKdfServiceAbstraction } from "../abstractions/change-kdf-service";
+import { MasterPasswordServiceAbstraction } from "../master-password/abstractions/master-password.service.abstraction";
+import { firstValueFromOrThrow } from "../utils";
 
-export class ChangeKdfService implements ChangeKdfServiceAbstraction {
+import { ChangeKdfApiService } from "./change-kdf-api.service";
+
+export class ChangeKdfService {
   constructor(
-    private apiService: ApiService,
     private masterPasswordService: MasterPasswordServiceAbstraction,
     private keyService: KeyService,
     private kdfConfigService: KdfConfigService,
+    private changeKdfApiService: ChangeKdfApiService,
   ) {}
 
+  /**
+   * Updates the user's KDF parameters
+   * @param masterPassword The user's current master password
+   * @param kdf The new KDF configuration to apply
+   * @param userId The ID of the user whose KDF parameters are being updated
+   * @throws If any of the parameters is null
+   * @throws If the user is locked or logged out
+   * @throws If the kdf change request fails
+   */
   async updateUserKdfParams(masterPassword: string, kdf: KdfConfig, userId: UserId): Promise<void> {
     assertNonNullish(masterPassword, "masterPassword");
     assertNonNullish(kdf, "kdf");
@@ -50,9 +58,11 @@ export class ChangeKdfService implements ChangeKdfServiceAbstraction {
       salt,
       userKey,
     );
-    const request = new KdfRequest(authenticationData, unlockData).authenticateWith(
+
+    await this.changeKdfApiService.updateUserKdfParams(
+      authenticationData,
+      unlockData,
       oldAuthenticationData,
     );
-    return this.apiService.send("POST", "/accounts/kdf", request, true, false);
   }
 }

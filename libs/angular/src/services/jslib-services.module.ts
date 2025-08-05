@@ -159,8 +159,8 @@ import { EncryptServiceImplementation } from "@bitwarden/common/key-management/c
 import { WebCryptoFunctionService } from "@bitwarden/common/key-management/crypto/services/web-crypto-function.service";
 import { DeviceTrustServiceAbstraction } from "@bitwarden/common/key-management/device-trust/abstractions/device-trust.service.abstraction";
 import { DeviceTrustService } from "@bitwarden/common/key-management/device-trust/services/device-trust.service.implementation";
-import { ChangeKdfServiceAbstraction } from "@bitwarden/common/key-management/kdf/abstractions/change-kdf-service";
-import { ChangeKdfService } from "@bitwarden/common/key-management/kdf/services/change-kdf-service";
+import { ChangeKdfApiService } from "@bitwarden/common/key-management/kdf/change-kdf-api.service";
+import { ChangeKdfService } from "@bitwarden/common/key-management/kdf/change-kdf-service";
 import { KeyConnectorService as KeyConnectorServiceAbstraction } from "@bitwarden/common/key-management/key-connector/abstractions/key-connector.service";
 import { KeyConnectorService } from "@bitwarden/common/key-management/key-connector/services/key-connector.service";
 import {
@@ -1209,9 +1209,14 @@ const safeProviders: SafeProvider[] = [
     ],
   }),
   safeProvider({
-    provide: ChangeKdfServiceAbstraction,
+    provide: ChangeKdfApiService,
+    useClass: ChangeKdfApiService,
+    deps: [ApiServiceAbstraction],
+  }),
+  safeProvider({
+    provide: ChangeKdfService,
     useClass: ChangeKdfService,
-    deps: [ApiServiceAbstraction, MasterPasswordServiceAbstraction, KeyService, KdfConfigService],
+    deps: [MasterPasswordServiceAbstraction, KeyService, KdfConfigService, ChangeKdfApiService],
   }),
   safeProvider({
     provide: AuthRequestServiceAbstraction,

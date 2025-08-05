@@ -1,26 +1,26 @@
 import { mock } from "jest-mock-extended";
 import { of } from "rxjs";
 
-import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
 import { UserId } from "@bitwarden/common/types/guid";
 import { UserKey } from "@bitwarden/common/types/key";
 // eslint-disable-next-line no-restricted-imports
 import { KdfConfigService, KeyService, PBKDF2KdfConfig } from "@bitwarden/key-management";
 
-import { makeEncString } from "../../../../spec";
-import { EncString } from "../../crypto/models/enc-string";
-import { MasterPasswordServiceAbstraction } from "../../master-password/abstractions/master-password.service.abstraction";
+import { makeEncString } from "../../../spec";
+import { EncString } from "../crypto/models/enc-string";
+import { MasterPasswordServiceAbstraction } from "../master-password/abstractions/master-password.service.abstraction";
 import {
   MasterKeyWrappedUserKey,
   MasterPasswordAuthenticationHash,
   MasterPasswordSalt,
-} from "../../master-password/types/master-password.types";
+} from "../master-password/types/master-password.types";
 
+import { ChangeKdfApiService } from "./change-kdf-api.service";
 import { ChangeKdfService } from "./change-kdf-service";
 
 describe("ChangeKdfService", () => {
-  const apiService = mock<ApiService>();
+  const changeKdfApiService = mock<ChangeKdfApiService>();
   const masterPasswordService = mock<MasterPasswordServiceAbstraction>();
   const keyService = mock<KeyService>();
   const kdfConfigService = mock<KdfConfigService>();
@@ -37,7 +37,12 @@ describe("ChangeKdfService", () => {
   const mockWrappedUserKey: EncString = makeEncString("wrappedUserKey");
 
   beforeEach(() => {
-    sut = new ChangeKdfService(apiService, masterPasswordService, keyService, kdfConfigService);
+    sut = new ChangeKdfService(
+      masterPasswordService,
+      keyService,
+      kdfConfigService,
+      changeKdfApiService,
+    );
   });
 
   afterEach(() => {
@@ -134,25 +139,22 @@ describe("ChangeKdfService", () => {
 
       await sut.updateUserKdfParams("masterPassword", mockNewKdfConfig, mockUserId);
 
-      expect(apiService.send).toHaveBeenCalledWith(
-        "POST",
-        "/accounts/kdf",
-        expect.objectContaining({
-          newMasterPasswordHash: mockNewHash,
-          key: mockWrappedUserKey.encryptedString,
-          authenticationData: {
-            salt: mockSalt,
-            kdf: mockNewKdfConfig,
-            masterPasswordAuthenticationHash: mockNewHash,
-          },
-          unlockData: {
-            kdf: mockNewKdfConfig,
-            salt: mockSalt,
-            masterKeyWrappedUserKey: mockWrappedUserKey.encryptedString as MasterKeyWrappedUserKey,
-          },
-        }),
-        true,
-        false,
+      expect(changeKdfApiService.updateUserKdfParams).toHaveBeenCalledWith(
+        {
+          salt: mockSalt,
+          kdf: mockNewKdfConfig,
+          masterPasswordAuthenticationHash: mockNewHash,
+        },
+        {
+          kdf: mockNewKdfConfig,
+          salt: mockSalt,
+          masterKeyWrappedUserKey: mockWrappedUserKey.encryptedString as MasterKeyWrappedUserKey,
+        },
+        {
+          salt: mockSalt,
+          kdf: mockOldKdfConfig,
+          masterPasswordAuthenticationHash: mockOldHash,
+        },
       );
     });
   });

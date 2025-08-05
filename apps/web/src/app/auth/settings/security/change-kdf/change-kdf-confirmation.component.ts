@@ -6,7 +6,7 @@ import { firstValueFrom } from "rxjs";
 
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { getUserId } from "@bitwarden/common/auth/services/account.service";
-import { ChangeKdfServiceAbstraction } from "@bitwarden/common/key-management/kdf/abstractions/change-kdf-service";
+import { ChangeKdfService } from "@bitwarden/common/key-management/kdf/change-kdf-service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { MessagingService } from "@bitwarden/common/platform/abstractions/messaging.service";
 import { DIALOG_DATA, ToastService } from "@bitwarden/components";
@@ -33,7 +33,7 @@ export class ChangeKdfConfirmationComponent {
     @Inject(DIALOG_DATA) params: { kdf: KdfType; kdfConfig: KdfConfig },
     private accountService: AccountService,
     private toastService: ToastService,
-    private changeKdfService: ChangeKdfServiceAbstraction,
+    private changeKdfService: ChangeKdfService,
   ) {
     this.kdfConfig = params.kdfConfig;
     this.masterPassword = null;
