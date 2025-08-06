@@ -61,9 +61,6 @@ export class ChangeKdfConfirmationComponent {
     this.kdfConfig.validateKdfConfigForSetting();
 
     const activeAccountId = await firstValueFrom(getUserId(this.accountService.activeAccount$));
-    if (activeAccountId === null) {
-      throw new Error("No active account found.");
-    }
 
     await this.changeKdfService.updateUserKdfParams(
       masterPassword,
