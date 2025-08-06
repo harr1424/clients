@@ -39,7 +39,7 @@ import { ConfigService } from "@bitwarden/common/platform/abstractions/config/co
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { getById } from "@bitwarden/common/platform/misc";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
-import { CollectionId } from "@bitwarden/common/types/guid";
+import { CollectionId, OrganizationId } from "@bitwarden/common/types/guid";
 import {
   DIALOG_DATA,
   DialogConfig,
@@ -88,8 +88,8 @@ enum ButtonType {
 }
 
 export interface CollectionDialogParams {
-  collectionId?: string;
-  organizationId: string;
+  collectionId?: CollectionId;
+  organizationId: OrganizationId;
   initialTab?: CollectionDialogTabType;
   parentCollectionId?: string;
   showOrgSelector?: boolean;
@@ -137,7 +137,7 @@ export class CollectionDialogComponent implements OnInit, OnDestroy {
     externalId: { value: "", disabled: true },
     parent: undefined as string | undefined,
     access: [[] as AccessItemValue[]],
-    selectedOrg: "",
+    selectedOrg: "" as OrganizationId,
   });
   protected PermissionMode = PermissionMode;
   protected showDeleteButton = false;

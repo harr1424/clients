@@ -3,7 +3,7 @@ import { Jsonify } from "type-fest";
 import { Organization } from "@bitwarden/common/admin-console/models/domain/organization";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
 import { View } from "@bitwarden/common/models/view/view";
-import { CollectionId } from "@bitwarden/common/types/guid";
+import { CollectionId, OrganizationId } from "@bitwarden/common/types/guid";
 import { OrgKey } from "@bitwarden/common/types/key";
 import { ITreeNodeObject } from "@bitwarden/common/vault/models/domain/tree-node";
 
@@ -14,7 +14,7 @@ export const NestingDelimiter = "/";
 
 export class CollectionView implements View, ITreeNodeObject {
   id: CollectionId;
-  organizationId: string;
+  organizationId: OrganizationId;
   name: string;
   externalId: string | undefined;
   // readOnly applies to the items within a collection
@@ -24,7 +24,7 @@ export class CollectionView implements View, ITreeNodeObject {
   assigned: boolean = false;
   type: CollectionType = CollectionTypes.SharedCollection;
 
-  constructor(c: { id: CollectionId; organizationId: string; name: string }) {
+  constructor(c: { id: CollectionId; organizationId: OrganizationId; name: string }) {
     this.id = c.id;
     this.organizationId = c.organizationId;
     this.name = c.name;

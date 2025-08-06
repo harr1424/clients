@@ -29,7 +29,7 @@ import {
 } from "@bitwarden/common/platform/abstractions/environment.service";
 import { StateService } from "@bitwarden/common/platform/abstractions/state.service";
 import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
-import { CollectionId } from "@bitwarden/common/types/guid";
+import { CollectionId, OrganizationId } from "@bitwarden/common/types/guid";
 import { CipherType } from "@bitwarden/common/vault/enums";
 import { AttachmentView } from "@bitwarden/common/vault/models/view/attachment.view";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
@@ -361,7 +361,7 @@ function createGroupView(i: number): GroupView {
 
 function createOrganization(i: number): Organization {
   const organization = new Organization();
-  organization.id = `organization-${i}`;
+  organization.id = `organization-${i}` as OrganizationId;
   organization.name = `Organization ${i}`;
   organization.type = OrganizationUserType.Owner;
   organization.permissions = new PermissionsApi();

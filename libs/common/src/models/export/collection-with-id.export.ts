@@ -8,7 +8,7 @@ import { CollectionId } from "@bitwarden/common/types/guid";
 import { CollectionExport } from "./collection.export";
 
 export class CollectionWithIdExport extends CollectionExport {
-  id: string;
+  id: CollectionId;
 
   static toView(req: CollectionWithIdExport, view: CollectionView) {
     view.id = req.id as CollectionId;

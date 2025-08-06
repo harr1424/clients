@@ -9,7 +9,7 @@ import { normalizeExpiryYearFormat } from "@bitwarden/common/autofill/utils";
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { ConsoleLogService } from "@bitwarden/common/platform/services/console-log.service";
-import { CollectionId } from "@bitwarden/common/types/guid";
+import { CollectionId, OrganizationId } from "@bitwarden/common/types/guid";
 import { FieldType, SecureNoteType, CipherType } from "@bitwarden/common/vault/enums";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
 import { FieldView } from "@bitwarden/common/vault/models/view/field.view";
@@ -21,7 +21,7 @@ import { SecureNoteView } from "@bitwarden/common/vault/models/view/secure-note.
 import { ImportResult } from "../models/import-result";
 
 export abstract class BaseImporter {
-  organizationId: string = null;
+  organizationId: OrganizationId = null;
 
   // FIXME: This should be replaced by injecting the log service.
   protected logService: LogService = new ConsoleLogService(false);

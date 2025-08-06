@@ -1,7 +1,7 @@
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
 import { EncString } from "@bitwarden/common/key-management/crypto/models/enc-string";
 import Domain from "@bitwarden/common/platform/models/domain/domain-base";
-import { CollectionId } from "@bitwarden/common/types/guid";
+import { CollectionId, OrganizationId } from "@bitwarden/common/types/guid";
 import { OrgKey } from "@bitwarden/common/types/key";
 
 import { CollectionData } from "./collection.data";
@@ -16,7 +16,7 @@ export type CollectionType = (typeof CollectionTypes)[keyof typeof CollectionTyp
 
 export class Collection extends Domain {
   id: CollectionId;
-  organizationId: string;
+  organizationId: OrganizationId;
   name: EncString;
   externalId: string | undefined;
   readOnly: boolean = false;
@@ -24,7 +24,7 @@ export class Collection extends Domain {
   manage: boolean = false;
   type: CollectionType = CollectionTypes.SharedCollection;
 
-  constructor(c: { id: CollectionId; name: EncString; organizationId: string }) {
+  constructor(c: { id: CollectionId; name: EncString; organizationId: OrganizationId }) {
     super();
     this.id = c.id;
     this.name = c.name;

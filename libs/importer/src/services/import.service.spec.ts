@@ -9,7 +9,7 @@ import { PinServiceAbstraction } from "@bitwarden/common/key-management/pin/pin.
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { MockSdkService } from "@bitwarden/common/platform/spec/mock-sdk.service";
-import { CollectionId } from "@bitwarden/common/types/guid";
+import { CollectionId, OrganizationId } from "@bitwarden/common/types/guid";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { FolderService } from "@bitwarden/common/vault/abstractions/folder/folder.service.abstraction";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
@@ -68,7 +68,7 @@ describe("ImportService", () => {
   describe("getImporterInstance", () => {
     describe("Get bitPasswordProtected importer", () => {
       let importer: Importer;
-      const organizationId = Utils.newGuid();
+      const organizationId = Utils.newGuid() as OrganizationId;
       const password = Utils.newGuid();
       const promptForPassword_callback = async () => {
         return password;
@@ -99,7 +99,7 @@ describe("ImportService", () => {
   });
 
   describe("setImportTarget", () => {
-    const organizationId = Utils.newGuid();
+    const organizationId = Utils.newGuid() as OrganizationId;
 
     let importResult: ImportResult;
 
