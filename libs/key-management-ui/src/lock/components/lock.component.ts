@@ -57,6 +57,7 @@ import {
   UserAsymmetricKeysRegenerationService,
 } from "@bitwarden/key-management";
 
+import { EncryptedMigrationsSchedulerService } from "../../encrypted-migration/encrypted-migrations-scheduler.service";
 import {
   UnlockOption,
   LockComponentService,
@@ -162,10 +163,11 @@ export class LockComponent implements OnInit, OnDestroy {
     private lockComponentService: LockComponentService,
     private anonLayoutWrapperDataService: AnonLayoutWrapperDataService,
     private encryptedMigrator: EncryptedMigratorAbstraction,
+    private encryptedMigrationsInitiatorService: EncryptedMigrationsSchedulerService,
 
     // desktop deps
     private broadcasterService: BroadcasterService,
-  ) {}
+  ) { }
 
   async ngOnInit() {
     this.listenForActiveUnlockOptionChanges();
@@ -608,7 +610,7 @@ export class LockComponent implements OnInit, OnDestroy {
 
     await this.biometricStateService.resetUserPromptCancelled();
 
-    await this.encryptedMigrator.runMigrations(this.activeAccount.id, masterPassword);
+    //await this.encryptedMigrator.runMigrations(this.activeAccount.id, masterPassword);
 
     this.messagingService.send("unlocked");
 

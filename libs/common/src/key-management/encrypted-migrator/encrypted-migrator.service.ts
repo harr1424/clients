@@ -32,7 +32,7 @@ export class EncryptedMigrator implements EncryptedMigratorAbstraction {
     });
   }
 
-  async runMigrations(userId: UserId, masterPassword?: string): Promise<void> {
+  async runMigrations(userId: UserId, masterPassword: string | null = null): Promise<void> {
     assertNonNullish(userId, "userId");
 
     // Run all migrations sequentially in the order they were registered
@@ -48,5 +48,17 @@ export class EncryptedMigrator implements EncryptedMigratorAbstraction {
     }
     this.logService.mark("[Encrypted Migrator] Finish");
     this.logService.info(`[Encrypted Migrator] Completed migrations for user: ${userId}`);
+  }
+
+  async needsMigrations(userId: UserId): Promise<boolean> {
+    assertNonNullish(userId, "userId");
+
+    for (const { migration } of this.migrations) {
+      if (await migration.needsMigration(userId)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

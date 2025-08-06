@@ -25,7 +25,7 @@ export class MinimumKdfMigration implements EncryptedMigration {
     private readonly changeKdfService: ChangeKdfServiceAbstraction,
     private readonly logService: LogService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async runMigrations(userId: UserId, masterPassword?: string): Promise<void> {
     assertNonNullish(userId, "userId");
@@ -58,6 +58,7 @@ export class MinimumKdfMigration implements EncryptedMigration {
 
     const kdfConfig = await this.kdfConfigService.getKdfConfig(userId);
     assertNonNullish(kdfConfig, "kdfConfig");
+    return true;
 
     // Only PBKDF2 users below the minimum iteration count need migration currently
     if (

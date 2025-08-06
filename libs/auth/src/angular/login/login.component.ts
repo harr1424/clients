@@ -18,7 +18,6 @@ import { Policy } from "@bitwarden/common/admin-console/models/domain/policy";
 import { DevicesApiServiceAbstraction } from "@bitwarden/common/auth/abstractions/devices-api.service.abstraction";
 import { AuthResult } from "@bitwarden/common/auth/models/domain/auth-result";
 import { ClientType, HttpStatusCode } from "@bitwarden/common/enums";
-import { EncryptedMigratorAbstraction } from "@bitwarden/common/key-management/encrypted-migrator/encrypted-migrator.abstraction";
 import { ErrorResponse } from "@bitwarden/common/models/response/error.response";
 import { AppIdService } from "@bitwarden/common/platform/abstractions/app-id.service";
 import { BroadcasterService } from "@bitwarden/common/platform/abstractions/broadcaster.service";
@@ -123,7 +122,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     private logService: LogService,
     private validationService: ValidationService,
     private loginSuccessHandlerService: LoginSuccessHandlerService,
-    private encryptedMigrator: EncryptedMigratorAbstraction,
   ) {
     this.clientType = this.platformUtilsService.getClientType();
   }
@@ -318,8 +316,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
 
     // User logged in successfully so execute side effects
-    await this.loginSuccessHandlerService.run(authResult.userId);
-    await this.encryptedMigrator.runMigrations(authResult.userId, masterPassword);
+    await this.loginSuccessHandlerService.run(authResult.userId, masterPassword);
 
     // Determine where to send the user next
     // The AuthGuard will handle routing to change-password based on state
