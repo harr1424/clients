@@ -49,7 +49,6 @@ import {
   MAX_SUB_FRAME_DEPTH,
   RedirectFocusDirection,
 } from "../enums/autofill-overlay.enum";
-import { InlineMenuFormFieldData } from "../services/abstractions/autofill-overlay-content.service";
 import { AutofillService } from "../services/abstractions/autofill.service";
 import { InlineMenuFieldQualificationService } from "../services/inline-menu-field-qualification.service";
 import {
@@ -71,6 +70,7 @@ import {
   triggerWebRequestOnCompletedEvent,
 } from "../spec/testing-utils";
 
+import { ModifyLoginCipherFormData } from "./abstractions/overlay-notifications.background";
 import {
   FocusedFieldData,
   InlineMenuPosition,
@@ -2076,7 +2076,7 @@ describe("OverlayBackground", () => {
         const tab = createChromeTabMock({ id: 2 });
         const sender = mock<chrome.runtime.MessageSender>({ tab, frameId: 100 });
         let focusedFieldData: FocusedFieldData;
-        let formData: InlineMenuFormFieldData;
+        let formData: ModifyLoginCipherFormData;
 
         beforeEach(async () => {
           await initOverlayElementPorts();
