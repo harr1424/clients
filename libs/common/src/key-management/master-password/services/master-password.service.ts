@@ -253,6 +253,7 @@ export class MasterPasswordService implements InternalMasterPasswordServiceAbstr
       kdf,
     )) as MasterKey;
 
+    const start = performance.now();
     const masterPasswordAuthenticationHash = Utils.fromBufferToB64(
       await this.cryptoFunctionService.pbkdf2(
         masterKey.toEncoded(),
@@ -261,6 +262,12 @@ export class MasterPasswordService implements InternalMasterPasswordServiceAbstr
         SERVER_AUTHENTICATION_HASH_ITERATIONS,
       ),
     ) as MasterPasswordAuthenticationHash;
+    this.logService.measure(
+      start,
+      "[Crypto]",
+      "MasterPasswordService",
+      "makeMasterPasswordAuthenticationData",
+    );
 
     return {
       salt,
@@ -283,6 +290,7 @@ export class MasterPasswordService implements InternalMasterPasswordServiceAbstr
     // We don't trust callers to use masterpasswordsalt correctly. They may type assert incorrectly.
     salt = salt.toLowerCase().trim() as MasterPasswordSalt;
 
+    const start = performance.now();
     await SdkLoadService.Ready;
     const masterKeyWrappedUserKey = PureCrypto.encrypt_user_key_with_master_password(
       userKey.toEncoded(),
@@ -290,6 +298,13 @@ export class MasterPasswordService implements InternalMasterPasswordServiceAbstr
       salt,
       kdf.toSdkConfig(),
     ) as MasterKeyWrappedUserKey;
+    this.logService.measure(
+      start,
+      "[Crypto]",
+      "MasterPasswordService",
+      "makeMasterPasswordUnlockData",
+    );
+
     return {
       salt,
       kdf,
@@ -304,6 +319,7 @@ export class MasterPasswordService implements InternalMasterPasswordServiceAbstr
     assertNonNullish(password, "password");
     assertNonNullish(masterPasswordUnlockData, "masterPasswordUnlockData");
 
+    const start = performance.now();
     await SdkLoadService.Ready;
     const userKey = new SymmetricCryptoKey(
       PureCrypto.decrypt_user_key_with_master_password(
@@ -313,6 +329,13 @@ export class MasterPasswordService implements InternalMasterPasswordServiceAbstr
         masterPasswordUnlockData.kdf.toSdkConfig(),
       ),
     );
+    this.logService.measure(
+      start,
+      "[Crypto]",
+      "MasterPasswordService",
+      "unwrapUserKeyFromMasterPasswordUnlockData",
+    );
+
     return userKey as UserKey;
   }
 }

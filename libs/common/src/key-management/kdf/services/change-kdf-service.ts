@@ -3,17 +3,20 @@ import { KdfRequest } from "@bitwarden/common/models/request/kdf.request";
 import { UserId } from "@bitwarden/common/types/guid";
 // eslint-disable-next-line no-restricted-imports
 import { KdfConfig, KdfConfigService, KeyService } from "@bitwarden/key-management";
+import { LogService } from "@bitwarden/logging";
 
-import { MasterPasswordServiceAbstraction } from "../../master-password/abstractions/master-password.service.abstraction";
+import { EncString } from "../../crypto/models/enc-string";
+import { InternalMasterPasswordServiceAbstraction } from "../../master-password/abstractions/master-password.service.abstraction";
 import { firstValueFromOrThrow } from "../../utils";
 import { ChangeKdfServiceAbstraction } from "../abstractions/change-kdf-service";
 
 export class ChangeKdfService implements ChangeKdfServiceAbstraction {
   constructor(
     private apiService: ApiService,
-    private masterPasswordService: MasterPasswordServiceAbstraction,
+    private masterPasswordService: InternalMasterPasswordServiceAbstraction,
     private keyService: KeyService,
     private kdfConfigService: KdfConfigService,
+    private logService: LogService,
   ) {}
 
   async updateUserKdfParams(masterPassword: string, kdf: KdfConfig, userId: UserId): Promise<void> {
@@ -48,6 +51,14 @@ export class ChangeKdfService implements ChangeKdfServiceAbstraction {
     const request = new KdfRequest(authenticationData, unlockData).authenticateWith(
       oldAuthenticationData,
     );
-    return this.apiService.send("POST", "/accounts/kdf", request, true, false);
+    await this.apiService.send("POST", "/accounts/kdf", request, true, false);
+    this.logService.info(
+      `[Change KDF Service] Successfully updated KDF parameters for user ${userId}`,
+    );
+    await this.kdfConfigService.setKdfConfig(userId, unlockData.kdf);
+    await this.masterPasswordService.setMasterKeyEncryptedUserKey(
+      new EncString(unlockData.masterKeyWrappedUserKey),
+      userId,
+    );
   }
 }
