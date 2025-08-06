@@ -5,7 +5,10 @@ import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { AccountInfo, AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
 import { EncString } from "@bitwarden/common/key-management/crypto/models/enc-string";
-import { UserId } from "@bitwarden/common/types/guid";
+import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
+import { CsprngArray } from "@bitwarden/common/types/csprng";
+import { OrganizationId, UserId } from "@bitwarden/common/types/guid";
+import { OrgKey } from "@bitwarden/common/types/key";
 import { KeyService } from "@bitwarden/key-management";
 
 import { SecretAccessPoliciesView } from "../models/view/access-policies/secret-access-policies.view";
@@ -13,6 +16,16 @@ import { SecretView } from "../models/view/secret.view";
 import { AccessPolicyService } from "../shared/access-policies/access-policy.service";
 
 import { SecretService } from "./secret.service";
+
+const SomeCsprngArray = new Uint8Array(64) as CsprngArray;
+const SomeOrganization = "some organization" as OrganizationId;
+const AnotherOrganization = "another organization" as OrganizationId;
+const SomeOrgKey = new SymmetricCryptoKey(SomeCsprngArray) as OrgKey;
+const AnotherOrgKey = new SymmetricCryptoKey(SomeCsprngArray) as OrgKey;
+const OrgRecords: Record<OrganizationId, OrgKey> = {
+  [SomeOrganization]: SomeOrgKey,
+  [AnotherOrganization]: AnotherOrgKey,
+};
 
 describe("SecretService", () => {
   let sut: SecretService;
@@ -31,6 +44,9 @@ describe("SecretService", () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+
+    const orgKey$ = new BehaviorSubject(OrgRecords);
+    keyService.orgKeys$.mockReturnValue(orgKey$);
 
     accountService = mock<AccountService>();
     accountService.activeAccount$ = activeAccountSubject;
