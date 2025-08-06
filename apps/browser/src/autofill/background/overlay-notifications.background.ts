@@ -311,7 +311,7 @@ export class OverlayNotificationsBackground implements OverlayNotificationsBackg
 
     const response = (await BrowserApi.tabSendMessage(
       tab,
-      { command: "getModifyLoginCipherFormData" },
+      { command: "getInlineMenuFormFieldData" },
       { frameId },
     )) as OverlayNotificationsExtensionMessage;
     if (response) {

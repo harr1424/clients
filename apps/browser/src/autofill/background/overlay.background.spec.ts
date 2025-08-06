@@ -3651,6 +3651,18 @@ describe("OverlayBackground", () => {
         });
       });
 
+      it("sends a message to the tab to store modify login change when a password is generated", async () => {
+        jest.useFakeTimers();
+
+        sendPortMessage(listMessageConnectorSpy, { command: "fillGeneratedPassword", portKey });
+
+        await flushPromises();
+        jest.advanceTimersByTime(400);
+        await flushPromises();
+
+        expect(tabsSendMessageSpy.mock.lastCall[1].command).toBe("generatedPasswordModifyLogin");
+      });
+
       it("filters the page details to only include the new password fields before filling", async () => {
         sendPortMessage(listMessageConnectorSpy, { command: "fillGeneratedPassword", portKey });
         await flushPromises();
@@ -3662,31 +3674,6 @@ describe("OverlayBackground", () => {
           fillNewPassword: true,
           allowTotpAutofill: false,
         });
-      });
-
-      it("opens the inline menu for fields that fill a generated password", async () => {
-        jest.useFakeTimers();
-        const formData = {
-          uri: "https://example.com",
-          username: "username",
-          password: "password",
-          newPassword: "newPassword",
-        };
-        tabsSendMessageSpy.mockImplementation((_tab, message) => {
-          if (message.command === "getInlineMenuFormFieldData") {
-            return Promise.resolve(formData);
-          }
-
-          return Promise.resolve();
-        });
-        const openInlineMenuSpy = jest.spyOn(overlayBackground as any, "openInlineMenu");
-
-        sendPortMessage(listMessageConnectorSpy, { command: "fillGeneratedPassword", portKey });
-        await flushPromises();
-        jest.advanceTimersByTime(400);
-        await flushPromises();
-
-        expect(openInlineMenuSpy).toHaveBeenCalled();
       });
     });
   });
