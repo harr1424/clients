@@ -26,7 +26,7 @@ import { StateEventRunnerService } from "@bitwarden/common/platform/state";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { InternalFolderService } from "@bitwarden/common/vault/abstractions/folder/folder.service.abstraction";
 import { SearchService } from "@bitwarden/common/vault/abstractions/search.service";
-import { AriaDisabledClickCaptureService, DialogService, ToastService } from "@bitwarden/components";
+import { DialogService, ToastService } from "@bitwarden/components";
 import { KeyService, BiometricStateService } from "@bitwarden/key-management";
 
 import { PolicyListService } from "./admin-console/core/policy-list.service";
@@ -60,7 +60,6 @@ export class AppComponent implements OnDestroy, OnInit {
   loading = false;
 
   constructor(
-    private ariaDisabledClickCaptureService: AriaDisabledClickCaptureService,
     private broadcasterService: BroadcasterService,
     private folderService: InternalFolderService,
     private cipherService: CipherService,
