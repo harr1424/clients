@@ -10,6 +10,8 @@
   <header
     class="tw-flex tw-justify-between tw-items-center tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-py-3 tw-ps-6 tw-pe-4"
     [ngClass]="{
+      'tw-p-4 has-[[biticonbutton]]:tw-pe-2': !isDrawer,
+      'tw-px-6 tw-py-4 has-[[biticonbutton]]:tw-pe-4': isDrawer,
       'tw-border-secondary-100': showHeaderBorder,
       'tw-border-transparent': !showHeaderBorder,
     }"
@@ -72,8 +74,10 @@
   <footer
     class="tw-flex tw-flex-row tw-items-center tw-gap-2 tw-border-0 tw-border-t tw-border-solid tw-bg-background tw-py-5 tw-ps-6 tw-pe-4"
     [ngClass]="{
-      'tw-border-secondary-100': showFooterBorder,
+      'tw-px-6 tw-py-4': isDrawer,
+      'tw-p-4 has-[[biticonbutton]]:tw-pe-2': !isDrawer,
       'tw-border-transparent': !showFooterBorder,
+      'tw-border-secondary-100': showFooterBorder,
     }"
   >
     <ng-content select="[bitDialogFooter]"></ng-content>
