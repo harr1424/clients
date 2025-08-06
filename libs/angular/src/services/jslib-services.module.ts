@@ -491,7 +491,7 @@ const safeProviders: SafeProvider[] = [
   safeProvider({
     provide: EncryptedMigratorAbstraction,
     useClass: EncryptedMigrator,
-    deps: [KdfConfigService, ChangeKdfServiceAbstraction, LogService],
+    deps: [KdfConfigService, ChangeKdfServiceAbstraction, LogService, ConfigService],
   }),
   safeProvider({
     provide: LoginStrategyServiceAbstraction,
