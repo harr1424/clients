@@ -1,8 +1,6 @@
-import { animate, state, style, transition, trigger } from "@angular/animations";
-import { ConnectedPosition } from "@angular/cdk/overlay";
-import { Component, EventEmitter, Output, Input, OnInit, OnDestroy } from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
-import { Observable, map, Subject, takeUntil } from "rxjs";
+import { CommonModule } from "@angular/common";
+import { Component, OnDestroy } from "@angular/core";
+import { Observable, map, Subject } from "rxjs";
 
 // This import has been flagged as unallowed for this class. It may be involved in a circular dependency loop.
 // eslint-disable-next-line no-restricted-imports
@@ -13,66 +11,22 @@ import {
   RegionConfig,
 } from "@bitwarden/common/platform/abstractions/environment.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
-import { DialogService, ToastService } from "@bitwarden/components";
-
-export const ExtensionDefaultOverlayPosition: ConnectedPosition[] = [
-  {
-    originX: "start",
-    originY: "top",
-    overlayX: "start",
-    overlayY: "bottom",
-  },
-];
-export const DesktopDefaultOverlayPosition: ConnectedPosition[] = [
-  {
-    originX: "start",
-    originY: "top",
-    overlayX: "start",
-    overlayY: "bottom",
-  },
-];
-
-export interface EnvironmentSelectorRouteData {
-  overlayPosition?: ConnectedPosition[];
-}
+import {
+  DialogService,
+  LinkModule,
+  MenuModule,
+  ToastService,
+  TypographyModule,
+} from "@bitwarden/components";
+import { I18nPipe } from "@bitwarden/ui-common";
 
 @Component({
   selector: "environment-selector",
   templateUrl: "environment-selector.component.html",
-  animations: [
-    trigger("transformPanel", [
-      state(
-        "void",
-        style({
-          opacity: 0,
-        }),
-      ),
-      transition(
-        "void => open",
-        animate(
-          "100ms linear",
-          style({
-            opacity: 1,
-          }),
-        ),
-      ),
-      transition("* => void", animate("100ms linear", style({ opacity: 0 }))),
-    ]),
-  ],
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, I18nPipe, MenuModule, LinkModule, TypographyModule],
 })
-export class EnvironmentSelectorComponent implements OnInit, OnDestroy {
-  @Output() onOpenSelfHostedSettings = new EventEmitter<void>();
-  @Input() overlayPosition: ConnectedPosition[] = [
-    {
-      originX: "start",
-      originY: "bottom",
-      overlayX: "start",
-      overlayY: "top",
-    },
-  ];
-
-  protected isOpen = false;
+export class EnvironmentSelectorComponent implements OnDestroy {
   protected ServerEnvironmentType = Region;
   protected availableRegions = this.environmentService.availableRegions();
   protected selectedRegion$: Observable<RegionConfig | undefined> =
@@ -84,20 +38,11 @@ export class EnvironmentSelectorComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   constructor(
-    protected environmentService: EnvironmentService,
-    private route: ActivatedRoute,
+    public environmentService: EnvironmentService,
     private dialogService: DialogService,
     private toastService: ToastService,
     private i18nService: I18nService,
   ) {}
-
-  ngOnInit() {
-    this.route.data.pipe(takeUntil(this.destroy$)).subscribe((data) => {
-      if (data && data["overlayPosition"]) {
-        this.overlayPosition = data["overlayPosition"];
-      }
-    });
-  }
 
   ngOnDestroy() {
     this.destroy$.next();
@@ -105,7 +50,6 @@ export class EnvironmentSelectorComponent implements OnInit, OnDestroy {
   }
 
   async toggle(option: Region) {
-    this.isOpen = !this.isOpen;
     if (option === null) {
       return;
     }
@@ -127,9 +71,5 @@ export class EnvironmentSelectorComponent implements OnInit, OnDestroy {
     }
 
     await this.environmentService.setEnvironment(option);
-  }
-
-  close() {
-    this.isOpen = false;
   }
 }
