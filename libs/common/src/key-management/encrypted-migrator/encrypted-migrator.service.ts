@@ -1,4 +1,5 @@
 import { assertNonNullish } from "@bitwarden/common/auth/utils";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { UserId } from "@bitwarden/common/types/guid";
 // eslint-disable-next-line no-restricted-imports
 import { KdfConfigService } from "@bitwarden/key-management";
@@ -8,7 +9,7 @@ import { ChangeKdfServiceAbstraction } from "../kdf/abstractions/change-kdf-serv
 
 import { EncryptedMigratorAbstraction } from "./encrypted-migrator.abstraction";
 import { EncryptedMigration } from "./migrations/encrypted-migration";
-import { MinimumPbkdf2Migration } from "./migrations/minimum-kdf-migration";
+import { MinimumKdfMigration } from "./migrations/minimum-kdf-migration";
 
 export class EncryptedMigrator implements EncryptedMigratorAbstraction {
   private migrations: { name: string; migration: EncryptedMigration }[] = [];
@@ -17,11 +18,17 @@ export class EncryptedMigrator implements EncryptedMigratorAbstraction {
     readonly kdfConfigService: KdfConfigService,
     readonly changeKdfService: ChangeKdfServiceAbstraction,
     private readonly logService: LogService,
+    readonly configService: ConfigService,
   ) {
     // Register migrations here
     this.migrations.push({
       name: "Minimum PBKDF2 Iteration Count Migration",
-      migration: new MinimumPbkdf2Migration(kdfConfigService, changeKdfService, logService),
+      migration: new MinimumKdfMigration(
+        kdfConfigService,
+        changeKdfService,
+        logService,
+        configService,
+      ),
     });
   }
 

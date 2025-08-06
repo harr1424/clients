@@ -3,6 +3,7 @@ import { of } from "rxjs";
 
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { KdfRequest } from "@bitwarden/common/models/request/kdf.request";
+import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
 import { UserId } from "@bitwarden/common/types/guid";
 import { UserKey } from "@bitwarden/common/types/key";
@@ -11,7 +12,7 @@ import { KdfConfigService, KeyService, PBKDF2KdfConfig } from "@bitwarden/key-ma
 
 import { makeEncString } from "../../../../spec";
 import { EncString } from "../../crypto/models/enc-string";
-import { MasterPasswordServiceAbstraction } from "../../master-password/abstractions/master-password.service.abstraction";
+import { InternalMasterPasswordServiceAbstraction } from "../../master-password/abstractions/master-password.service.abstraction";
 import {
   MasterKeyWrappedUserKey,
   MasterPasswordAuthenticationHash,
@@ -22,9 +23,10 @@ import { ChangeKdfService } from "./change-kdf-service";
 
 describe("ChangeKdfService", () => {
   const apiService = mock<ApiService>();
-  const masterPasswordService = mock<MasterPasswordServiceAbstraction>();
+  const masterPasswordService = mock<InternalMasterPasswordServiceAbstraction>();
   const keyService = mock<KeyService>();
   const kdfConfigService = mock<KdfConfigService>();
+  const configService = mock<ConfigService>();
 
   let sut: ChangeKdfService = mock<ChangeKdfService>();
 
@@ -38,7 +40,13 @@ describe("ChangeKdfService", () => {
   const mockWrappedUserKey: EncString = makeEncString("wrappedUserKey");
 
   beforeEach(() => {
-    sut = new ChangeKdfService(apiService, masterPasswordService, keyService, kdfConfigService);
+    sut = new ChangeKdfService(
+      apiService,
+      masterPasswordService,
+      keyService,
+      kdfConfigService,
+      configService,
+    );
   });
 
   afterEach(() => {
