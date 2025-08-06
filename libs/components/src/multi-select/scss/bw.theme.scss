@@ -14,10 +14,13 @@ $ng-select-bg: rgb(var(--color-background)) !default;
 $ng-select-selected: transparent !default;
 $ng-select-selected-text: $ng-select-primary-text !default;
 
-$ng-select-marked: rgb(var(--color-primary-100)) !default;
+$ng-select-marked: var(--color-hover-default) !default;
 $ng-select-marked-text: $ng-select-primary-text !default;
 
 $ng-select-box-shadow: none !default;
+$ng-select-dropdown-box-shadow:
+  0 4px 6px -1px rgb(0 0 0 / 0.1),
+  0 2px 4px -2px rgb(0 0 0 / 0.1);
 $ng-select-placeholder: rgb(var(--color-text-muted)) !default;
 $ng-select-height: 100%;
 $ng-select-value-padding-left: 1rem !default;
@@ -246,15 +249,13 @@ $ng-dropdown-shadow: rgb(var(--color-secondary-100)) !default;
 .ng-dropdown-panel {
   z-index: 2050 !important;
   background-color: $ng-select-dropdown-bg;
-  border: 1px solid $ng-select-dropdown-border;
   border-radius: $ng-select-border-radius;
-  box-shadow: $ng-select-box-shadow;
+  box-shadow: $ng-select-dropdown-box-shadow;
   left: 0;
   &.ng-select-top {
     bottom: 100%;
     border-top-right-radius: $ng-select-border-radius;
     border-top-left-radius: $ng-select-border-radius;
-    border-bottom-color: $ng-select-border;
     margin-bottom: -1px;
     .ng-dropdown-panel-items {
       .ng-option {
@@ -271,7 +272,6 @@ $ng-dropdown-shadow: rgb(var(--color-secondary-100)) !default;
     border-top-right-radius: $ng-select-border-radius;
     border-bottom-right-radius: $ng-select-border-radius;
     border-bottom-left-radius: $ng-select-border-radius;
-    border-bottom-color: $ng-select-border;
     margin-bottom: -1px;
     .ng-dropdown-panel-items {
       .ng-option {
@@ -285,7 +285,6 @@ $ng-dropdown-shadow: rgb(var(--color-secondary-100)) !default;
     top: 100%;
     border-bottom-right-radius: $ng-select-border-radius;
     border-bottom-left-radius: $ng-select-border-radius;
-    border-top-color: $ng-select-border;
     margin-top: -1px;
     .ng-dropdown-panel-items {
       .ng-option {
@@ -302,7 +301,6 @@ $ng-dropdown-shadow: rgb(var(--color-secondary-100)) !default;
     border-top-left-radius: $ng-select-border-radius;
     border-bottom-right-radius: $ng-select-border-radius;
     border-bottom-left-radius: $ng-select-border-radius;
-    border-bottom-color: $ng-select-border;
     margin-bottom: -1px;
     .ng-dropdown-panel-items {
       .ng-option {
