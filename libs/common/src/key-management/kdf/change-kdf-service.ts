@@ -1,4 +1,5 @@
 import { assertNonNullish } from "@bitwarden/common/auth/utils";
+import { KdfRequest } from "@bitwarden/common/models/request/kdf.request";
 import { UserId } from "@bitwarden/common/types/guid";
 // eslint-disable-next-line no-restricted-imports
 import { KdfConfig, KdfConfigService, KeyService } from "@bitwarden/key-management";
@@ -59,10 +60,8 @@ export class ChangeKdfService {
       userKey,
     );
 
-    await this.changeKdfApiService.updateUserKdfParams(
-      authenticationData,
-      unlockData,
-      oldAuthenticationData,
-    );
+    const request = new KdfRequest(authenticationData, unlockData);
+    request.authenticateWith(oldAuthenticationData);
+    await this.changeKdfApiService.updateUserKdfParams(request);
   }
 }
