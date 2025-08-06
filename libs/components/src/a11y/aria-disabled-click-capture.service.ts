@@ -9,10 +9,11 @@ export class AriaDisabledClickCaptureService implements OnDestroy {
     @Inject(DOCUMENT) private document: Document,
     private ngZone: NgZone,
   ) {
-    console.log('aria disabled click capture service initialized');
     this.ngZone.runOutsideAngular(() => {
       this.listener = (e: MouseEvent) => {
-        const btn = (e.target as HTMLElement).closest('[aria-disabled="true"][bit-aria-disable="true"]');
+        const btn = (e.target as HTMLElement).closest(
+          '[aria-disabled="true"][bit-aria-disable="true"]',
+        );
         if (btn) {
           e.stopPropagation();
           e.preventDefault();
