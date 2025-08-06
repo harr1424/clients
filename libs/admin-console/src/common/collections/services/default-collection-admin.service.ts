@@ -1,11 +1,16 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
 
+import { combineLatest, firstValueFrom, from, map, Observable, of, switchMap } from "rxjs";
+
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
 import { SelectionReadOnlyRequest } from "@bitwarden/common/admin-console/models/request/selection-read-only.request";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
 import { EncString } from "@bitwarden/common/key-management/crypto/models/enc-string";
-import { CollectionId, UserId } from "@bitwarden/common/types/guid";
+import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
+import { Utils } from "@bitwarden/common/platform/misc/utils";
+import { CollectionId, OrganizationId, UserId } from "@bitwarden/common/types/guid";
+import { OrgKey } from "@bitwarden/common/types/key";
 import { KeyService } from "@bitwarden/key-management";
 
 import { CollectionAdminService, CollectionService } from "../abstractions";
@@ -26,39 +31,36 @@ export class DefaultCollectionAdminService implements CollectionAdminService {
     private keyService: KeyService,
     private encryptService: EncryptService,
     private collectionService: CollectionService,
+    private i18nService: I18nService,
   ) {}
 
-  async getAll(organizationId: string): Promise<CollectionAdminView[]> {
-    const collectionResponse =
-      await this.apiService.getManyCollectionsWithAccessDetails(organizationId);
+  private orgKeyCache = new Map<UserId, Observable<Record<OrganizationId, OrgKey>>>();
 
-    if (collectionResponse?.data == null || collectionResponse.data.length === 0) {
-      return [];
+  private orgKey$(userId: UserId): Observable<Record<OrganizationId, OrgKey>> {
+    if (!this.orgKeyCache.get(userId)) {
+      this.orgKeyCache.set(userId, this.keyService.orgKeys$(userId));
     }
 
-    return await this.decryptMany(organizationId, collectionResponse.data);
+    return this.orgKeyCache.get(userId);
   }
 
-  async get(
-    organizationId: string,
-    collectionId: string,
-  ): Promise<CollectionAdminView | undefined> {
-    const collectionResponse = await this.apiService.getCollectionAccessDetails(
-      organizationId,
-      collectionId,
+  collectionAdminViews$(organizationId: string, userId: UserId): Observable<CollectionAdminView[]> {
+    return combineLatest([
+      this.orgKey$(userId),
+      from(this.apiService.getManyCollectionsWithAccessDetails(organizationId)),
+    ]).pipe(
+      switchMap(([orgKey, res]) => {
+        if (res?.data == null || res.data.length === 0) {
+          return of([]);
+        }
+
+        return this.decryptMany(organizationId, res.data, orgKey);
+      }),
     );
-
-    if (collectionResponse == null) {
-      return undefined;
-    }
-
-    const [view] = await this.decryptMany(organizationId, [collectionResponse]);
-
-    return view;
   }
 
   async save(collection: CollectionAdminView, userId: UserId): Promise<CollectionDetailsResponse> {
-    const request = await this.encrypt(collection);
+    const request = await this.encrypt(collection, userId);
 
     let response: CollectionDetailsResponse;
     if (collection.id == null) {
@@ -112,13 +114,17 @@ export class DefaultCollectionAdminService implements CollectionAdminService {
   private async decryptMany(
     organizationId: string,
     collections: CollectionResponse[] | CollectionAccessDetailsResponse[],
+    orgKeys: Record<OrganizationId, OrgKey>,
   ): Promise<CollectionAdminView[]> {
-    const orgKey = await this.keyService.getOrgKey(organizationId);
+    const decCollections: CollectionAdminView[] = [];
 
-    const promises = collections.map(async (c) => {
+    collections.forEach(async (c) => {
       const view = new CollectionAdminView();
       view.id = c.id;
-      view.name = await this.encryptService.decryptString(new EncString(c.name), orgKey);
+      view.name = await this.encryptService.decryptString(
+        new EncString(c.name),
+        orgKeys[organizationId as OrganizationId],
+      );
       view.externalId = c.externalId;
       view.organizationId = c.organizationId;
 
@@ -132,17 +138,19 @@ export class DefaultCollectionAdminService implements CollectionAdminService {
         view.unmanaged = c.unmanaged;
       }
 
-      return view;
+      decCollections.push(view);
     });
 
-    return await Promise.all(promises);
+    return decCollections.sort(Utils.getSortFunction(this.i18nService, "name"));
   }
 
-  private async encrypt(model: CollectionAdminView): Promise<CollectionRequest> {
+  private async encrypt(model: CollectionAdminView, userId: UserId): Promise<CollectionRequest> {
     if (model.organizationId == null) {
       throw new Error("Collection has no organization id.");
     }
-    const key = await this.keyService.getOrgKey(model.organizationId);
+    const key = await firstValueFrom(
+      this.orgKey$(userId).pipe(map((orgKeys) => orgKeys[model.organizationId] ?? null)),
+    );
     if (key == null) {
       throw new Error("No key for this collection's organization.");
     }

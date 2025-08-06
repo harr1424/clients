@@ -1,12 +1,17 @@
 // FIXME: Update this file to be type safe and remove this and next line
 // @ts-strict-ignore
+import { firstValueFrom, map, switchMap } from "rxjs";
+
 import {
   OrganizationUserApiService,
   OrganizationUserConfirmRequest,
 } from "@bitwarden/admin-console/common";
 import { ApiService } from "@bitwarden/common/abstractions/api.service";
+import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
+import { getUserId } from "@bitwarden/common/auth/services/account.service";
 import { EncryptService } from "@bitwarden/common/key-management/crypto/abstractions/encrypt.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
+import { OrganizationId } from "@bitwarden/common/types/guid";
 import { KeyService } from "@bitwarden/key-management";
 
 import { Response } from "../../models/response";
@@ -17,6 +22,7 @@ export class ConfirmCommand {
     private keyService: KeyService,
     private encryptService: EncryptService,
     private organizationUserApiService: OrganizationUserApiService,
+    private accountService: AccountService,
   ) {}
 
   async run(object: string, id: string, cmdOptions: Record<string, any>): Promise<Response> {
@@ -44,7 +50,14 @@ export class ConfirmCommand {
       return Response.badRequest("`" + options.organizationId + "` is not a GUID.");
     }
     try {
-      const orgKey = await this.keyService.getOrgKey(options.organizationId);
+      const orgKey = await firstValueFrom(
+        this.accountService.activeAccount$.pipe(
+          getUserId,
+          switchMap((userId) => this.keyService.orgKeys$(userId)),
+          map((orgKeys) => orgKeys[options.organizationId as OrganizationId] ?? null),
+        ),
+      );
+
       if (orgKey == null) {
         throw new Error("No encryption key for this organization.");
       }
