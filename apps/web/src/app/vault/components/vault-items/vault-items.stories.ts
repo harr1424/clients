@@ -265,7 +265,7 @@ export const OrganizationTrash: Story = {
 const unassignedCollection = new CollectionAdminView({
   id: Unassigned as CollectionId,
   name: "Unassigned",
-  organizationId: "org id",
+  organizationId: "org id" as OrganizationId,
 });
 export const OrganizationTopLevelCollection: Story = {
   args: {
@@ -332,7 +332,7 @@ function createCollectionView(i: number): CollectionAdminView {
   const view = new CollectionAdminView({
     id: `collection-${i}` as CollectionId,
     name: `Collection ${i}`,
-    organizationId: organization?.id ?? "orgId",
+    organizationId: organization?.id ?? ("orgId" as OrganizationId),
   });
 
   if (group !== undefined) {
