@@ -9,7 +9,7 @@ import { EncryptService } from "@bitwarden/common/key-management/crypto/abstract
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 import { SymmetricCryptoKey } from "@bitwarden/common/platform/models/domain/symmetric-crypto-key";
 import { CsprngArray } from "@bitwarden/common/types/csprng";
-import { UserId } from "@bitwarden/common/types/guid";
+import { OrganizationId, UserId } from "@bitwarden/common/types/guid";
 import { OrgKey } from "@bitwarden/common/types/key";
 import { KeyService } from "@bitwarden/key-management";
 
@@ -33,6 +33,16 @@ import { ServiceAccountGrantedPoliciesRequest } from "./models/requests/service-
 
 import { trackEmissions } from "@bitwarden/common/../spec";
 
+const SomeCsprngArray = new Uint8Array(64) as CsprngArray;
+const SomeOrganization = "some organization" as OrganizationId;
+const AnotherOrganization = "another organization" as OrganizationId;
+const SomeOrgKey = new SymmetricCryptoKey(SomeCsprngArray) as OrgKey;
+const AnotherOrgKey = new SymmetricCryptoKey(SomeCsprngArray) as OrgKey;
+const OrgRecords: Record<OrganizationId, OrgKey> = {
+  [SomeOrganization]: SomeOrgKey,
+  [AnotherOrganization]: AnotherOrgKey,
+};
+
 describe("AccessPolicyService", () => {
   let sut: AccessPolicyService;
 
@@ -49,6 +59,9 @@ describe("AccessPolicyService", () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+
+    const orgKey$ = new BehaviorSubject(OrgRecords);
+    keyService.orgKeys$.mockReturnValue(orgKey$);
 
     accountService = mock<AccountService>();
     accountService.activeAccount$ = activeAccountSubject;
