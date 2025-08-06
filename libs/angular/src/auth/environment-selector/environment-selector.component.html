@@ -8,7 +8,6 @@
       <button
         *ngFor="let region of availableRegions; let i = index"
         bitMenuItem
-        role="button"
         type="button"
         [attr.aria-pressed]="data.selectedRegion === region ? 'true' : 'false'"
         [attr.data-testid]="'environment-selector-dialog-item-' + i"
@@ -24,7 +23,6 @@
       </button>
       <button
         bitMenuItem
-        role="button"
         type="button"
         [attr.aria-pressed]="data.selectedRegion ? 'false' : 'true'"
         data-testid="environment-selector-dialog-item-self-hosted"
@@ -41,7 +39,7 @@
     </bit-menu>
     <div bitTypography="body2">
       {{ "accessing" | i18n }}:
-      <button [bitMenuTriggerFor]="environmentOptions" bitLink role="button" type="button">
+      <button [bitMenuTriggerFor]="environmentOptions" bitLink type="button">
         <b class="tw-text-primary-600 tw-font-semibold">{{
           data.selectedRegion?.domain || ("selfHostedServer" | i18n)
         }}</b>
