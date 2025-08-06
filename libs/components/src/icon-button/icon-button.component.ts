@@ -5,7 +5,7 @@ import { Component, computed, ElementRef, HostBinding, inject, input, model } fr
 import { toObservable, toSignal } from "@angular/core/rxjs-interop";
 import { debounce, interval } from "rxjs";
 
-import { AriaDisabledTrapDirective } from "../a11y";
+import { AriaDisableDirective } from "../a11y";
 import { ButtonLikeAbstraction, ButtonType } from "../shared/button-like.abstraction";
 import { FocusableElement } from "../shared/focusable-element";
 import { ariaDisableElement } from "../utils";
@@ -167,7 +167,7 @@ const sizes: Record<IconButtonSize, string[]> = {
   host: {
     "[attr.aria-disabled]": "disabledAttr()",
   },
-  hostDirectives: [AriaDisabledTrapDirective],
+  hostDirectives: [AriaDisableDirective],
 })
 export class BitIconButtonComponent implements ButtonLikeAbstraction, FocusableElement {
   readonly icon = model<string>(undefined, { alias: "bitIconButton" });

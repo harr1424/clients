@@ -12,7 +12,7 @@ import {
 import { toObservable, toSignal } from "@angular/core/rxjs-interop";
 import { debounce, interval } from "rxjs";
 
-import { AriaDisabledTrapDirective } from "../a11y";
+import { AriaDisableDirective } from "../a11y";
 import { ButtonLikeAbstraction, ButtonType, ButtonSize } from "../shared/button-like.abstraction";
 import { ariaDisableElement } from "../utils";
 
@@ -64,7 +64,7 @@ const buttonStyles: Record<ButtonType, string[]> = {
   host: {
     "[attr.aria-disabled]": "disabledAttr()",
   },
-  hostDirectives: [AriaDisabledTrapDirective],
+  hostDirectives: [AriaDisableDirective],
 })
 export class ButtonComponent implements ButtonLikeAbstraction {
   @HostBinding("class") get classList() {
