@@ -10,7 +10,6 @@
         bitMenuItem
         type="button"
         [attr.aria-pressed]="data.selectedRegion === region ? 'true' : 'false'"
-        [attr.data-testid]="'environment-selector-dialog-item-' + i"
         (click)="toggle(region.key)"
       >
         <i
@@ -25,7 +24,6 @@
         bitMenuItem
         type="button"
         [attr.aria-pressed]="data.selectedRegion ? 'false' : 'true'"
-        data-testid="environment-selector-dialog-item-self-hosted"
         (click)="toggle(ServerEnvironmentType.SelfHosted)"
       >
         <i
