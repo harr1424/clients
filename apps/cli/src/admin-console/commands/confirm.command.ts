@@ -12,7 +12,9 @@ import { EncryptService } from "@bitwarden/common/key-management/crypto/abstract
 import { ConfigService } from "@bitwarden/common/platform/abstractions/config/config.service";
 import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
+import { OrgKey } from "@bitwarden/common/types/key";
 import { KeyService } from "@bitwarden/key-management";
+import { EncString } from "@bitwarden/sdk-internal";
 
 import { Response } from "../../models/response";
 
@@ -70,12 +72,7 @@ export class ConfirmCommand {
       if (
         await firstValueFrom(this.configService.getFeatureFlag$(FeatureFlag.CreateDefaultLocation))
       ) {
-        const defaultCollectionName = this.i18nService.t("myItems");
-        const encryptedCollectionName = await this.encryptService.encryptString(
-          defaultCollectionName,
-          orgKey,
-        );
-        req.defaultUserCollectionName = encryptedCollectionName.encryptedString;
+        req.defaultUserCollectionName = await this.getEncryptedDefaultUserCollectionName(orgKey);
       }
       await this.organizationUserApiService.postOrganizationUserConfirm(
         options.organizationId,
@@ -86,6 +83,12 @@ export class ConfirmCommand {
     } catch (e) {
       return Response.error(e);
     }
+  }
+
+  private async getEncryptedDefaultUserCollectionName(orgKey: OrgKey): Promise<EncString> {
+    const defaultCollectionName = this.i18nService.t("myItems");
+    const encrypted = await this.encryptService.encryptString(defaultCollectionName, orgKey);
+    return encrypted.encryptedString;
   }
 }
 
