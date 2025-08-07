@@ -42,10 +42,6 @@ describe("BadgeService", () => {
         badgeServiceSubscription = badgeService.startListening();
       });
 
-      it("sets default values on startup", async () => {
-        expect(badgeApi.generalState).toEqual(DefaultBadgeState);
-      });
-
       it("sets provided state when no other state has been set", async () => {
         const state: BadgeState = {
           text: "text",
@@ -199,15 +195,6 @@ describe("BadgeService", () => {
         badgeApi.tabs = tabIds;
         badgeApi.setActiveTab(tabId);
         badgeServiceSubscription = badgeService.startListening();
-      });
-
-      it("sets default values for each tab on startup", async () => {
-        expect(badgeApi.generalState).toEqual(DefaultBadgeState);
-        expect(badgeApi.specificStates).toEqual({
-          1: DefaultBadgeState,
-          2: undefined,
-          3: undefined,
-        });
       });
 
       it("sets state for each tab when no other state has been set", async () => {

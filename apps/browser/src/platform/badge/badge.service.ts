@@ -1,4 +1,13 @@
-import { combineLatest, concatMap, distinctUntilChanged, map, startWith, Subscription } from "rxjs";
+import {
+  combineLatest,
+  concatMap,
+  distinctUntilChanged,
+  filter,
+  map,
+  pairwise,
+  startWith,
+  Subscription,
+} from "rxjs";
 
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import {
@@ -8,6 +17,7 @@ import {
   StateProvider,
 } from "@bitwarden/common/platform/state";
 
+import { difference } from "./array-utils";
 import { BadgeBrowserApi, RawBadgeState } from "./badge-browser-api";
 import { DefaultBadgeState } from "./consts";
 import { BadgeStatePriority } from "./priority";
@@ -44,13 +54,26 @@ export class BadgeService {
         startWith({}),
         distinctUntilChanged(),
         map((states) => new Set(states ? Object.values(states) : [])),
+        pairwise(),
+        map(([previous, current]) => {
+          const [removed, added] = difference(previous, current);
+          return { all: current, removed, added };
+        }),
+        filter(({ removed, added }) => removed.size > 0 || added.size > 0),
       ),
       activeTab: this.badgeApi.activeTab$.pipe(startWith(undefined)),
     })
       .pipe(
         concatMap(async ({ states, activeTab }) => {
+          const changed = [...states.removed, ...states.added];
+
+          // If the active tab wasn't changed, we don't need to update the badge.
+          if (!changed.some((s) => s.tabId === activeTab?.tabId || s.tabId === undefined)) {
+            return;
+          }
+
           try {
-            const state = this.calculateState(states, activeTab?.tabId);
+            const state = this.calculateState(states.all, activeTab?.tabId);
             await this.badgeApi.setState(state, activeTab?.tabId);
           } catch (error) {
             // This usually happens when the user opens a popout because of how the browser treats it
