@@ -1,12 +1,4 @@
-import {
-  BehaviorSubject,
-  combineLatest,
-  concatMap,
-  distinctUntilChanged,
-  map,
-  startWith,
-  Subscription,
-} from "rxjs";
+import { combineLatest, concatMap, distinctUntilChanged, map, startWith, Subscription } from "rxjs";
 
 import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import {
@@ -15,8 +7,6 @@ import {
   KeyDefinition,
   StateProvider,
 } from "@bitwarden/common/platform/state";
-
-import { BrowserApi } from "../browser/browser-api";
 
 import { BadgeBrowserApi, RawBadgeState } from "./badge-browser-api";
 import { DefaultBadgeState } from "./consts";
@@ -35,7 +25,6 @@ const BADGE_STATES = new KeyDefinition(BADGE_MEMORY, "badgeStates", {
 
 export class BadgeService {
   private states: GlobalState<Record<string, StateSetting>>;
-  private activeTab$ = new BehaviorSubject<chrome.tabs.TabActiveInfo | undefined>(undefined);
 
   constructor(
     private stateProvider: StateProvider,
@@ -50,17 +39,13 @@ export class BadgeService {
    * Without this the service will not be able to update the badge state.
    */
   startListening(): Subscription {
-    BrowserApi.addListener(chrome.tabs.onActivated, async (tab) => {
-      this.activeTab$.next(tab);
-    });
-
     return combineLatest({
       states: this.states.state$.pipe(
         startWith({}),
         distinctUntilChanged(),
         map((states) => new Set(states ? Object.values(states) : [])),
       ),
-      activeTab: this.activeTab$,
+      activeTab: this.badgeApi.activeTab$.pipe(startWith(undefined)),
     })
       .pipe(
         concatMap(async ({ states, activeTab }) => {

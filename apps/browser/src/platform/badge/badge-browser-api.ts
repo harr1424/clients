@@ -1,3 +1,5 @@
+import { Observable } from "rxjs";
+
 import { PlatformUtilsService } from "@bitwarden/common/platform/abstractions/platform-utils.service";
 import { Utils } from "@bitwarden/common/platform/misc/utils";
 
@@ -13,6 +15,8 @@ export interface RawBadgeState {
 }
 
 export interface BadgeBrowserApi {
+  activeTab$: Observable<chrome.tabs.TabActiveInfo | undefined>;
+
   setState(state: RawBadgeState, tabId?: number): Promise<void>;
   getTabs(): Promise<number[]>;
 }
@@ -20,6 +24,17 @@ export interface BadgeBrowserApi {
 export class DefaultBadgeBrowserApi implements BadgeBrowserApi {
   private badgeAction = BrowserApi.getBrowserAction();
   private sidebarAction = BrowserApi.getSidebarAction(self);
+
+  activeTab$ = new Observable<chrome.tabs.TabActiveInfo>((subscriber) => {
+    const listener = (tab: chrome.tabs.TabActiveInfo) => {
+      subscriber.next(tab);
+    };
+    BrowserApi.addListener(chrome.tabs.onActivated, listener);
+
+    return () => {
+      BrowserApi.removeListener(chrome.tabs.onActivated, listener);
+    };
+  });
 
   constructor(private platformUtilsService: PlatformUtilsService) {}
 

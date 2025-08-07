@@ -38,10 +38,10 @@ describe("BadgeService", () => {
     describe("given a single tab is open", () => {
       beforeEach(() => {
         badgeApi.tabs = [1];
+        badgeApi.setActiveTab(tabId);
         badgeServiceSubscription = badgeService.startListening();
       });
 
-      // This relies on the state provider to auto-emit
       it("sets default values on startup", async () => {
         expect(badgeApi.generalState).toEqual(DefaultBadgeState);
       });
@@ -56,7 +56,6 @@ describe("BadgeService", () => {
         await badgeService.setState("state-name", BadgeStatePriority.Default, state);
 
         await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(badgeApi.generalState).toEqual(state);
         expect(badgeApi.specificStates[tabId]).toEqual(state);
       });
 
@@ -67,7 +66,6 @@ describe("BadgeService", () => {
         await badgeService.setState("state-name", BadgeStatePriority.Default, state);
 
         await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(badgeApi.generalState).toEqual(DefaultBadgeState);
         expect(badgeApi.specificStates[tabId]).toEqual(DefaultBadgeState);
       });
 
@@ -86,7 +84,6 @@ describe("BadgeService", () => {
           backgroundColor: "#fff",
           icon: BadgeIcon.Locked,
         };
-        expect(badgeApi.generalState).toEqual(expectedState);
         expect(badgeApi.specificStates[tabId]).toEqual(expectedState);
       });
 
@@ -109,7 +106,6 @@ describe("BadgeService", () => {
           backgroundColor: "#aaa",
           icon: BadgeIcon.Locked,
         };
-        expect(badgeApi.generalState).toEqual(expectedState);
         expect(badgeApi.specificStates[tabId]).toEqual(expectedState);
       });
 
@@ -130,7 +126,6 @@ describe("BadgeService", () => {
           backgroundColor: "#fff",
           icon: BadgeIcon.Locked,
         };
-        expect(badgeApi.generalState).toEqual(expectedState);
         expect(badgeApi.specificStates[tabId]).toEqual(expectedState);
       });
 
@@ -151,7 +146,6 @@ describe("BadgeService", () => {
         await badgeService.clearState("state-3");
 
         await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(badgeApi.generalState).toEqual(DefaultBadgeState);
         expect(badgeApi.specificStates[tabId]).toEqual(DefaultBadgeState);
       });
 
@@ -171,7 +165,6 @@ describe("BadgeService", () => {
           backgroundColor: "#fff",
           icon: DefaultBadgeState.icon,
         };
-        expect(badgeApi.generalState).toEqual(expectedState);
         expect(badgeApi.specificStates[tabId]).toEqual(expectedState);
       });
 
@@ -194,24 +187,27 @@ describe("BadgeService", () => {
           backgroundColor: "#fff",
           icon: BadgeIcon.Unlocked,
         };
-        expect(badgeApi.generalState).toEqual(expectedState);
         expect(badgeApi.specificStates[tabId]).toEqual(expectedState);
       });
     });
 
     describe("given multiple tabs are open", () => {
+      const tabId = 1;
       const tabIds = [1, 2, 3];
 
       beforeEach(() => {
         badgeApi.tabs = tabIds;
+        badgeApi.setActiveTab(tabId);
         badgeServiceSubscription = badgeService.startListening();
       });
 
       it("sets default values for each tab on startup", async () => {
         expect(badgeApi.generalState).toEqual(DefaultBadgeState);
-        for (const tabId of tabIds) {
-          expect(badgeApi.specificStates[tabId]).toEqual(DefaultBadgeState);
-        }
+        expect(badgeApi.specificStates).toEqual({
+          1: DefaultBadgeState,
+          2: undefined,
+          3: undefined,
+        });
       });
 
       it("sets state for each tab when no other state has been set", async () => {
@@ -224,11 +220,10 @@ describe("BadgeService", () => {
         await badgeService.setState("state-name", BadgeStatePriority.Default, state);
 
         await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(badgeApi.generalState).toEqual(state);
         expect(badgeApi.specificStates).toEqual({
           1: state,
-          2: state,
-          3: state,
+          2: undefined,
+          3: undefined,
         });
       });
     });
@@ -240,6 +235,7 @@ describe("BadgeService", () => {
 
       beforeEach(() => {
         badgeApi.tabs = [tabId];
+        badgeApi.setActiveTab(tabId);
         badgeServiceSubscription = badgeService.startListening();
       });
 
@@ -253,7 +249,6 @@ describe("BadgeService", () => {
         await badgeService.setState("state-name", BadgeStatePriority.Default, state, tabId);
 
         await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(badgeApi.generalState).toEqual(DefaultBadgeState);
         expect(badgeApi.specificStates[tabId]).toEqual(state);
       });
 
@@ -264,7 +259,6 @@ describe("BadgeService", () => {
         await badgeService.setState("state-name", BadgeStatePriority.Default, state, tabId);
 
         await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(badgeApi.generalState).toEqual(DefaultBadgeState);
         expect(badgeApi.specificStates[tabId]).toEqual(DefaultBadgeState);
       });
 
@@ -283,11 +277,6 @@ describe("BadgeService", () => {
         });
 
         await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(badgeApi.generalState).toEqual({
-          ...DefaultBadgeState,
-          text: "text",
-          icon: BadgeIcon.Locked,
-        });
         expect(badgeApi.specificStates[tabId]).toEqual({
           text: "text",
           backgroundColor: "#fff",
@@ -320,7 +309,6 @@ describe("BadgeService", () => {
           backgroundColor: "#fff",
           icon: BadgeIcon.Locked,
         };
-        expect(badgeApi.generalState).toEqual(DefaultBadgeState);
         expect(badgeApi.specificStates[tabId]).toEqual(expectedState);
       });
 
@@ -358,7 +346,6 @@ describe("BadgeService", () => {
           backgroundColor: "#aaa",
           icon: BadgeIcon.Locked,
         };
-        expect(badgeApi.generalState).toEqual(DefaultBadgeState);
         expect(badgeApi.specificStates[tabId]).toEqual(expectedState);
       });
 
@@ -381,11 +368,6 @@ describe("BadgeService", () => {
         });
 
         await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(badgeApi.generalState).toEqual({
-          text: "override",
-          backgroundColor: "#aaa",
-          icon: DefaultBadgeState.icon,
-        });
         expect(badgeApi.specificStates[tabId]).toEqual({
           text: "override",
           backgroundColor: "#aaa",
@@ -415,7 +397,6 @@ describe("BadgeService", () => {
         await badgeService.clearState("state-2");
 
         await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(badgeApi.generalState).toEqual(DefaultBadgeState);
         expect(badgeApi.specificStates[tabId]).toEqual({
           text: "text",
           backgroundColor: "#fff",
@@ -455,7 +436,6 @@ describe("BadgeService", () => {
         await badgeService.clearState("state-3");
 
         await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(badgeApi.generalState).toEqual(DefaultBadgeState);
         expect(badgeApi.specificStates[tabId]).toEqual(DefaultBadgeState);
       });
 
@@ -480,7 +460,6 @@ describe("BadgeService", () => {
         );
 
         await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(badgeApi.generalState).toEqual(DefaultBadgeState);
         expect(badgeApi.specificStates[tabId]).toEqual({
           text: "text",
           backgroundColor: "#fff",
@@ -517,7 +496,6 @@ describe("BadgeService", () => {
         );
 
         await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(badgeApi.generalState).toEqual(DefaultBadgeState);
         expect(badgeApi.specificStates[tabId]).toEqual({
           text: "text",
           backgroundColor: "#fff",
@@ -527,14 +505,16 @@ describe("BadgeService", () => {
     });
 
     describe("given multiple tabs are open", () => {
+      const tabId = 1;
       const tabIds = [1, 2, 3];
 
       beforeEach(() => {
         badgeApi.tabs = tabIds;
+        badgeApi.setActiveTab(tabId);
         badgeServiceSubscription = badgeService.startListening();
       });
 
-      it("sets tab-specific state for provided tab and general state for the others", async () => {
+      it("sets tab-specific state for provided tab", async () => {
         const generalState: BadgeState = {
           text: "general-text",
           backgroundColor: "general-color",
@@ -554,11 +534,10 @@ describe("BadgeService", () => {
         );
 
         await new Promise((resolve) => setTimeout(resolve, 0));
-        expect(badgeApi.generalState).toEqual(generalState);
         expect(badgeApi.specificStates).toEqual({
           [tabIds[0]]: { ...specificState, backgroundColor: "general-color" },
-          [tabIds[1]]: generalState,
-          [tabIds[2]]: generalState,
+          [tabIds[1]]: undefined,
+          [tabIds[2]]: undefined,
         });
       });
     });
