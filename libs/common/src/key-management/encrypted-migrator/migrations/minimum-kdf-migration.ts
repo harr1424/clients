@@ -13,7 +13,7 @@ import { LogService } from "@bitwarden/logging";
 
 import { ChangeKdfServiceAbstraction } from "../../kdf/abstractions/change-kdf-service";
 
-import { EncryptedMigration } from "./encrypted-migration";
+import { EncryptedMigration, MigrationRequirement } from "./encrypted-migration";
 
 /**
  * This migrator ensures the user's account has a minimum PBKDF2 iteration count.
@@ -25,27 +25,15 @@ export class MinimumKdfMigration implements EncryptedMigration {
     private readonly changeKdfService: ChangeKdfServiceAbstraction,
     private readonly logService: LogService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   async runMigrations(userId: UserId, masterPassword?: string): Promise<void> {
     assertNonNullish(userId, "userId");
-    await this.legacyKdfMigration(userId, masterPassword);
-  }
+    assertNonNullish(masterPassword, "masterPassword");
 
-  private async legacyKdfMigration(userId: UserId, masterPassword?: string): Promise<void> {
-    assertNonNullish(userId, "userId");
-    const kdfConfig = await this.kdfConfigService.getKdfConfig(userId);
-    assertNonNullish(kdfConfig, "kdfConfig");
-
-    if (masterPassword == null) {
-      this.logService.warning(
-        `[Encrypted Migrator] No master password provided for user ${userId}, skipping KDF migration.`,
-      );
-      // User unlocked with biometrics / PIN
-      // TODO: Prompt user
-      return;
-    }
-
+    this.logService.info(
+      `[MinimumKdfMigration] Updating user ${userId} to minimum PBKDF2 iteration count ${MINIMUM_PBKDF2_ITERATIONS_FOR_UPGRADE}`,
+    );
     await this.changeKdfService.updateUserKdfParams(
       masterPassword,
       new PBKDF2KdfConfig(MINIMUM_PBKDF2_ITERATIONS_FOR_UPGRADE),
@@ -53,25 +41,22 @@ export class MinimumKdfMigration implements EncryptedMigration {
     );
   }
 
-  async needsMigration(userId: UserId): Promise<boolean> {
+  async needsMigration(userId: UserId): Promise<MigrationRequirement> {
     assertNonNullish(userId, "userId");
 
     const kdfConfig = await this.kdfConfigService.getKdfConfig(userId);
-    assertNonNullish(kdfConfig, "kdfConfig");
-    return true;
-
-    // Only PBKDF2 users below the minimum iteration count need migration currently
+    // Only PBKDF2 users below the minimum iteration count need migration
     if (
       kdfConfig.kdfType !== KdfType.PBKDF2_SHA256 ||
       kdfConfig.iterations >= MINIMUM_PBKDF2_ITERATIONS_FOR_UPGRADE
     ) {
-      return false;
+      return "noMigrationNeeded";
     }
 
     if (!(await this.configService.getFeatureFlag(FeatureFlag.ForceUpdateKDFSettings))) {
-      return false;
+      return "noMigrationNeeded";
     }
 
-    return true;
+    return "needsMigrationWithMasterPassword";
   }
 }

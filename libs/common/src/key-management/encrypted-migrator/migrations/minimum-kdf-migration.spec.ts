@@ -38,61 +38,83 @@ describe("MinimumKdfMigration", () => {
     );
   });
 
-  describe("runMigrations", () => {
-    it("should throw error when userId is null", async () => {
-      await expect(sut.runMigrations(null as any)).rejects.toThrow("userId");
-    });
-
-    it("should throw error when userId is undefined", async () => {
-      await expect(sut.runMigrations(undefined as any)).rejects.toThrow("userId");
-    });
-
-    it("should call legacyKdfMigration with correct parameters", async () => {
-      const mockKdfConfig = new PBKDF2KdfConfig(50000);
-      mockKdfConfigService.getKdfConfig.mockResolvedValue(mockKdfConfig);
-
-      const legacyKdfMigrationSpy = jest
-        .spyOn(sut as any, "legacyKdfMigration")
-        .mockResolvedValue(undefined);
-
-      await sut.runMigrations(mockUserId, mockMasterPassword);
-
-      expect(legacyKdfMigrationSpy).toHaveBeenCalledWith(mockUserId, mockMasterPassword);
-    });
-
-    it("should update KDF when master password is provided", async () => {
-      const mockKdfConfig = new PBKDF2KdfConfig(50000);
-      mockKdfConfigService.getKdfConfig.mockResolvedValue(mockKdfConfig);
-
-      await sut.runMigrations(mockUserId, mockMasterPassword);
-
-      expect(mockChangeKdfService.updateUserKdfParams).toHaveBeenCalledWith(
-        mockMasterPassword,
-        new PBKDF2KdfConfig(MINIMUM_PBKDF2_ITERATIONS_FOR_UPGRADE),
-        mockUserId,
-      );
-    });
-
-    it("should log warning and skip migration when master password is not provided", async () => {
-      const mockKdfConfig = new PBKDF2KdfConfig(50000);
-      mockKdfConfigService.getKdfConfig.mockResolvedValue(mockKdfConfig);
-
-      await sut.runMigrations(mockUserId);
-
-      expect(mockLogService.warning).toHaveBeenCalledWith(
-        `[Encrypted Migrator] No master password provided for user ${mockUserId}, skipping KDF migration.`,
-      );
-      expect(mockChangeKdfService.updateUserKdfParams).not.toHaveBeenCalled();
-    });
-
-    it("should throw error when kdfConfig is null", async () => {
-      mockKdfConfigService.getKdfConfig.mockResolvedValue(null);
-
-      await expect(sut.runMigrations(mockUserId, mockMasterPassword)).rejects.toThrow("kdfConfig");
-    });
-  });
-
   describe("needsMigration", () => {
+    it("should return 'noMigrationNeeded' when user is not using PBKDF2", async () => {
+      const mockKdfConfig = {
+        kdfType: KdfType.Argon2id,
+        iterations: 100000,
+      };
+      mockKdfConfigService.getKdfConfig.mockResolvedValue(mockKdfConfig as any);
+      mockConfigService.getFeatureFlag.mockResolvedValue(true);
+
+      const result = await sut.needsMigration(mockUserId);
+
+      expect(result).toBe("noMigrationNeeded");
+      expect(mockKdfConfigService.getKdfConfig).toHaveBeenCalledWith(mockUserId);
+    });
+
+    it("should return 'noMigrationNeeded' when PBKDF2 iterations are already above minimum", async () => {
+      const mockKdfConfig = {
+        kdfType: KdfType.PBKDF2_SHA256,
+        iterations: MINIMUM_PBKDF2_ITERATIONS_FOR_UPGRADE + 1000,
+      };
+      mockKdfConfigService.getKdfConfig.mockResolvedValue(mockKdfConfig as any);
+      mockConfigService.getFeatureFlag.mockResolvedValue(true);
+
+      const result = await sut.needsMigration(mockUserId);
+
+      expect(result).toBe("noMigrationNeeded");
+      expect(mockKdfConfigService.getKdfConfig).toHaveBeenCalledWith(mockUserId);
+    });
+
+    it("should return 'noMigrationNeeded' when PBKDF2 iterations equal minimum", async () => {
+      const mockKdfConfig = {
+        kdfType: KdfType.PBKDF2_SHA256,
+        iterations: MINIMUM_PBKDF2_ITERATIONS_FOR_UPGRADE,
+      };
+      mockKdfConfigService.getKdfConfig.mockResolvedValue(mockKdfConfig as any);
+      mockConfigService.getFeatureFlag.mockResolvedValue(true);
+
+      const result = await sut.needsMigration(mockUserId);
+
+      expect(result).toBe("noMigrationNeeded");
+      expect(mockKdfConfigService.getKdfConfig).toHaveBeenCalledWith(mockUserId);
+    });
+
+    it("should return 'noMigrationNeeded' when feature flag is disabled", async () => {
+      const mockKdfConfig = {
+        kdfType: KdfType.PBKDF2_SHA256,
+        iterations: MINIMUM_PBKDF2_ITERATIONS_FOR_UPGRADE - 1000,
+      };
+      mockKdfConfigService.getKdfConfig.mockResolvedValue(mockKdfConfig as any);
+      mockConfigService.getFeatureFlag.mockResolvedValue(false);
+
+      const result = await sut.needsMigration(mockUserId);
+
+      expect(result).toBe("noMigrationNeeded");
+      expect(mockKdfConfigService.getKdfConfig).toHaveBeenCalledWith(mockUserId);
+      expect(mockConfigService.getFeatureFlag).toHaveBeenCalledWith(
+        FeatureFlag.ForceUpdateKDFSettings,
+      );
+    });
+
+    it("should return 'needsMigrationWithMasterPassword' when PBKDF2 iterations are below minimum and feature flag is enabled", async () => {
+      const mockKdfConfig = {
+        kdfType: KdfType.PBKDF2_SHA256,
+        iterations: MINIMUM_PBKDF2_ITERATIONS_FOR_UPGRADE - 1000,
+      };
+      mockKdfConfigService.getKdfConfig.mockResolvedValue(mockKdfConfig as any);
+      mockConfigService.getFeatureFlag.mockResolvedValue(true);
+
+      const result = await sut.needsMigration(mockUserId);
+
+      expect(result).toBe("needsMigrationWithMasterPassword");
+      expect(mockKdfConfigService.getKdfConfig).toHaveBeenCalledWith(mockUserId);
+      expect(mockConfigService.getFeatureFlag).toHaveBeenCalledWith(
+        FeatureFlag.ForceUpdateKDFSettings,
+      );
+    });
+
     it("should throw error when userId is null", async () => {
       await expect(sut.needsMigration(null as any)).rejects.toThrow("userId");
     });
@@ -100,69 +122,66 @@ describe("MinimumKdfMigration", () => {
     it("should throw error when userId is undefined", async () => {
       await expect(sut.needsMigration(undefined as any)).rejects.toThrow("userId");
     });
+  });
 
-    it("should throw error when kdfConfig is null", async () => {
-      mockKdfConfigService.getKdfConfig.mockResolvedValue(null);
+  describe("runMigrations", () => {
+    it("should update KDF parameters with minimum PBKDF2 iterations", async () => {
+      await sut.runMigrations(mockUserId, mockMasterPassword);
 
-      await expect(sut.needsMigration(mockUserId)).rejects.toThrow("kdfConfig");
+      expect(mockLogService.info).toHaveBeenCalledWith(
+        `[MinimumKdfMigration] Updating user ${mockUserId} to minimum PBKDF2 iteration count ${MINIMUM_PBKDF2_ITERATIONS_FOR_UPGRADE}`,
+      );
+      expect(mockChangeKdfService.updateUserKdfParams).toHaveBeenCalledWith(
+        mockMasterPassword,
+        expect.any(PBKDF2KdfConfig),
+        mockUserId,
+      );
+
+      // Verify the PBKDF2KdfConfig has the correct iteration count
+      const kdfConfigArg = (mockChangeKdfService.updateUserKdfParams as jest.Mock).mock.calls[0][1];
+      expect(kdfConfigArg.iterations).toBe(MINIMUM_PBKDF2_ITERATIONS_FOR_UPGRADE);
     });
 
-    it("should return false when KDF type is not PBKDF2", async () => {
-      const mockKdfConfig = {
-        kdfType: KdfType.Argon2id,
-        iterations: 3,
-        memory: 64,
-        parallelism: 4,
-      } as any;
-      mockKdfConfigService.getKdfConfig.mockResolvedValue(mockKdfConfig);
-
-      const result = await sut.needsMigration(mockUserId);
-
-      expect(result).toBe(false);
+    it("should throw error when userId is null", async () => {
+      await expect(sut.runMigrations(null as any, mockMasterPassword)).rejects.toThrow("userId");
     });
 
-    it("should return false when PBKDF2 iterations are already at or above minimum", async () => {
-      const mockKdfConfig = new PBKDF2KdfConfig(MINIMUM_PBKDF2_ITERATIONS_FOR_UPGRADE);
-      mockKdfConfigService.getKdfConfig.mockResolvedValue(mockKdfConfig);
-
-      const result = await sut.needsMigration(mockUserId);
-
-      expect(result).toBe(false);
-    });
-
-    it("should return false when feature flag is disabled", async () => {
-      const mockKdfConfig = new PBKDF2KdfConfig(100000); // Below minimum
-      mockKdfConfigService.getKdfConfig.mockResolvedValue(mockKdfConfig);
-      mockConfigService.getFeatureFlag.mockResolvedValue(false);
-
-      const result = await sut.needsMigration(mockUserId);
-
-      expect(result).toBe(false);
-      expect(mockConfigService.getFeatureFlag).toHaveBeenCalledWith(
-        FeatureFlag.ForceUpdateKDFSettings,
+    it("should throw error when userId is undefined", async () => {
+      await expect(sut.runMigrations(undefined as any, mockMasterPassword)).rejects.toThrow(
+        "userId",
       );
     });
 
-    it("should return true when PBKDF2 iterations are below minimum and feature flag is enabled", async () => {
-      const mockKdfConfig = new PBKDF2KdfConfig(100000); // Below minimum
-      mockKdfConfigService.getKdfConfig.mockResolvedValue(mockKdfConfig);
-      mockConfigService.getFeatureFlag.mockResolvedValue(true);
+    it("should throw error when masterPassword is null", async () => {
+      await expect(sut.runMigrations(mockUserId, null as any)).rejects.toThrow("masterPassword");
+    });
 
-      const result = await sut.needsMigration(mockUserId);
-
-      expect(result).toBe(true);
-      expect(mockConfigService.getFeatureFlag).toHaveBeenCalledWith(
-        FeatureFlag.ForceUpdateKDFSettings,
+    it("should throw error when masterPassword is undefined", async () => {
+      await expect(sut.runMigrations(mockUserId, undefined as any)).rejects.toThrow(
+        "masterPassword",
       );
     });
 
-    it("should check feature flag only when other conditions are met", async () => {
-      const mockKdfConfig = new PBKDF2KdfConfig(MINIMUM_PBKDF2_ITERATIONS_FOR_UPGRADE);
-      mockKdfConfigService.getKdfConfig.mockResolvedValue(mockKdfConfig);
+    it("should throw error when masterPassword is not provided", async () => {
+      await expect(sut.runMigrations(mockUserId)).rejects.toThrow("masterPassword");
+    });
 
-      await sut.needsMigration(mockUserId);
+    it("should handle errors from changeKdfService", async () => {
+      const mockError = new Error("KDF update failed");
+      mockChangeKdfService.updateUserKdfParams.mockRejectedValue(mockError);
 
-      expect(mockConfigService.getFeatureFlag).not.toHaveBeenCalled();
+      await expect(sut.runMigrations(mockUserId, mockMasterPassword)).rejects.toThrow(
+        "KDF update failed",
+      );
+
+      expect(mockLogService.info).toHaveBeenCalledWith(
+        `[MinimumKdfMigration] Updating user ${mockUserId} to minimum PBKDF2 iteration count ${MINIMUM_PBKDF2_ITERATIONS_FOR_UPGRADE}`,
+      );
+      expect(mockChangeKdfService.updateUserKdfParams).toHaveBeenCalledWith(
+        mockMasterPassword,
+        expect.any(PBKDF2KdfConfig),
+        mockUserId,
+      );
     });
   });
 });
