@@ -1,15 +1,14 @@
 import {
-  defer,
+  BehaviorSubject,
+  combineLatest,
+  concatMap,
   distinctUntilChanged,
-  filter,
   map,
-  mergeMap,
-  pairwise,
   startWith,
   Subscription,
-  switchMap,
 } from "rxjs";
 
+import { LogService } from "@bitwarden/common/platform/abstractions/log.service";
 import {
   BADGE_MEMORY,
   GlobalState,
@@ -17,7 +16,8 @@ import {
   StateProvider,
 } from "@bitwarden/common/platform/state";
 
-import { difference } from "./array-utils";
+import { BrowserApi } from "../browser/browser-api";
+
 import { BadgeBrowserApi, RawBadgeState } from "./badge-browser-api";
 import { DefaultBadgeState } from "./consts";
 import { BadgeStatePriority } from "./priority";
@@ -35,10 +35,12 @@ const BADGE_STATES = new KeyDefinition(BADGE_MEMORY, "badgeStates", {
 
 export class BadgeService {
   private states: GlobalState<Record<string, StateSetting>>;
+  private activeTab$ = new BehaviorSubject<chrome.tabs.TabActiveInfo | undefined>(undefined);
 
   constructor(
     private stateProvider: StateProvider,
     private badgeApi: BadgeBrowserApi,
+    private logService: LogService,
   ) {
     this.states = this.stateProvider.getGlobal(BADGE_STATES);
   }
@@ -48,48 +50,27 @@ export class BadgeService {
    * Without this the service will not be able to update the badge state.
    */
   startListening(): Subscription {
-    const initialSetup$ = defer(async () => {
-      const openTabs = await this.badgeApi.getTabs();
-      await this.badgeApi.setState(DefaultBadgeState);
-      for (const tabId of openTabs) {
-        await this.badgeApi.setState(DefaultBadgeState, tabId);
-      }
+    BrowserApi.addListener(chrome.tabs.onActivated, async (tab) => {
+      this.activeTab$.next(tab);
     });
 
-    return initialSetup$
-      .pipe(
-        switchMap(() => this.states.state$),
+    return combineLatest({
+      states: this.states.state$.pipe(
         startWith({}),
         distinctUntilChanged(),
         map((states) => new Set(states ? Object.values(states) : [])),
-        pairwise(),
-        map(([previous, current]) => {
-          const [removed, added] = difference(previous, current);
-          return { states: current, removed, added };
-        }),
-        filter(({ removed, added }) => removed.size > 0 || added.size > 0),
-        mergeMap(async ({ states, removed, added }) => {
-          const changed = [...removed, ...added];
-          const changedTabIds = new Set(
-            changed.map((s) => s.tabId).filter((tabId) => tabId !== undefined),
-          );
-          const onlyTabSpecificStatesChanged = changed.every((s) => s.tabId != undefined);
-          if (onlyTabSpecificStatesChanged) {
-            // If only tab-specific states changed then we only need to update those specific tabs.
-            for (const tabId of changedTabIds) {
-              const newState = this.calculateState(states, tabId);
-              await this.badgeApi.setState(newState, tabId);
-            }
-            return;
-          }
-
-          // If there are any general states that changed then we need to update all tabs.
-          const openTabs = await this.badgeApi.getTabs();
-          const generalState = this.calculateState(states);
-          await this.badgeApi.setState(generalState);
-          for (const tabId of openTabs) {
-            const newState = this.calculateState(states, tabId);
-            await this.badgeApi.setState(newState, tabId);
+      ),
+      activeTab: this.activeTab$,
+    })
+      .pipe(
+        concatMap(async ({ states, activeTab }) => {
+          try {
+            const state = this.calculateState(states, activeTab?.tabId);
+            await this.badgeApi.setState(state, activeTab?.tabId);
+          } catch (error) {
+            // This usually happens when the user opens a popout because of how the browser treats it
+            // as a tab in the same window but then won't let you set the badge state for it.
+            this.logService.warning("Failed to set badge state", error);
           }
         }),
       )
