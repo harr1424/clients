@@ -12,8 +12,10 @@ import {
 import { LogService } from "@bitwarden/logging";
 
 import { ChangeKdfServiceAbstraction } from "../../kdf/abstractions/change-kdf-service";
+import { MasterPasswordServiceAbstraction } from "../../master-password/abstractions/master-password.service.abstraction";
 
 import { EncryptedMigration, MigrationRequirement } from "./encrypted-migration";
+
 
 /**
  * This migrator ensures the user's account has a minimum PBKDF2 iteration count.
@@ -25,7 +27,8 @@ export class MinimumKdfMigration implements EncryptedMigration {
     private readonly changeKdfService: ChangeKdfServiceAbstraction,
     private readonly logService: LogService,
     private readonly configService: ConfigService,
-  ) {}
+    private readonly masterPasswordService: MasterPasswordServiceAbstraction,
+  ) { }
 
   async runMigrations(userId: UserId, masterPassword?: string): Promise<void> {
     assertNonNullish(userId, "userId");
@@ -44,8 +47,12 @@ export class MinimumKdfMigration implements EncryptedMigration {
   async needsMigration(userId: UserId): Promise<MigrationRequirement> {
     assertNonNullish(userId, "userId");
 
-    const kdfConfig = await this.kdfConfigService.getKdfConfig(userId);
+    if (!await this.masterPasswordService.userHasMasterPassword(userId)) {
+      return "noMigrationNeeded";
+    }
+
     // Only PBKDF2 users below the minimum iteration count need migration
+    const kdfConfig = await this.kdfConfigService.getKdfConfig(userId);
     if (
       kdfConfig.kdfType !== KdfType.PBKDF2_SHA256 ||
       kdfConfig.iterations >= MINIMUM_PBKDF2_ITERATIONS_FOR_UPGRADE

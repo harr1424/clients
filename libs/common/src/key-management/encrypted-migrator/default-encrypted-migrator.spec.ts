@@ -8,7 +8,7 @@ import { LogService } from "@bitwarden/logging";
 
 import { ChangeKdfServiceAbstraction } from "../kdf/abstractions/change-kdf-service";
 
-import { DefaultEncryptedMigrator } from "./default-encrypted-migrator.service";
+import { DefaultEncryptedMigrator } from "./default-encrypted-migrator";
 import { EncryptedMigration } from "./migrations/encrypted-migration";
 import { MinimumKdfMigration } from "./migrations/minimum-kdf-migration";
 

@@ -6,6 +6,7 @@ import { KdfConfigService } from "@bitwarden/key-management";
 import { LogService } from "@bitwarden/logging";
 
 import { ChangeKdfServiceAbstraction } from "../kdf/abstractions/change-kdf-service";
+import { MasterPasswordServiceAbstraction } from "../master-password/abstractions/master-password.service.abstraction";
 
 import { EncryptedMigrator } from "./encrypted-migrator.abstraction";
 import { EncryptedMigration, MigrationRequirement } from "./migrations/encrypted-migration";
@@ -13,12 +14,14 @@ import { MinimumKdfMigration } from "./migrations/minimum-kdf-migration";
 
 export class DefaultEncryptedMigrator implements EncryptedMigrator {
   private migrations: { name: string; migration: EncryptedMigration }[] = [];
+  private isRunningMigration = false;
 
   constructor(
     readonly kdfConfigService: KdfConfigService,
     readonly changeKdfService: ChangeKdfServiceAbstraction,
     private readonly logService: LogService,
     readonly configService: ConfigService,
+    readonly masterPasswordService: MasterPasswordServiceAbstraction,
   ) {
     // Register migrations here
     this.migrations.push({
@@ -28,6 +31,7 @@ export class DefaultEncryptedMigrator implements EncryptedMigrator {
         changeKdfService,
         logService,
         configService,
+        masterPasswordService,
       ),
     });
   }
@@ -43,19 +47,32 @@ export class DefaultEncryptedMigrator implements EncryptedMigrator {
       throw new Error("Master password is required to run migrations");
     }
 
-    // Run all migrations sequentially in the order they were registered
-    this.logService.mark("[Encrypted Migrator] Start");
-    this.logService.info(`[Encrypted Migrator] Starting migrations for user: ${userId}`);
-    for (const { name, migration } of this.migrations) {
-      if ((await migration.needsMigration(userId)) !== "noMigrationNeeded") {
-        this.logService.info(`[Encrypted Migrator] Running migration: ${name}`);
-        const start = performance.now();
-        await migration.runMigrations(userId, masterPassword);
-        this.logService.measure(start, "[Encrypted Migrator]", name, "ExecutionTime");
+    try {
+      // No concurrent migrations allowed, so acquire a service-wide lock
+      if (this.isRunningMigration) {
+        throw new Error("Migrations are already running");
       }
+      this.isRunningMigration = true;
+
+      // Run all migrations sequentially in the order they were registered
+      this.logService.mark("[Encrypted Migrator] Start");
+      this.logService.info(`[Encrypted Migrator] Starting migrations for user: ${userId}`);
+      for (const { name, migration } of this.migrations) {
+        if ((await migration.needsMigration(userId)) !== "noMigrationNeeded") {
+          this.logService.info(`[Encrypted Migrator] Running migration: ${name}`);
+          const start = performance.now();
+          await migration.runMigrations(userId, masterPassword);
+          this.logService.measure(start, "[Encrypted Migrator]", name, "ExecutionTime");
+        }
+      }
+      this.logService.mark("[Encrypted Migrator] Finish");
+      this.logService.info(`[Encrypted Migrator] Completed migrations for user: ${userId}`);
+    } catch (error) {
+      this.logService.error(`[Encrypted Migrator] Error running migrations for user: ${userId}`, error);
+      throw error; // Re-throw the error to be handled by the caller
+    } finally {
+      this.isRunningMigration = false;
     }
-    this.logService.mark("[Encrypted Migrator] Finish");
-    this.logService.info(`[Encrypted Migrator] Completed migrations for user: ${userId}`);
   }
 
   async needsMigrations(userId: UserId): Promise<MigrationRequirement> {

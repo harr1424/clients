@@ -4,11 +4,12 @@ import { combineLatest, map, switchMap, of, firstValueFrom, filter, debounceTime
 import { AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { AuthService } from "@bitwarden/common/auth/abstractions/auth.service";
 import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authentication-status";
-import { EncryptedMigratorAbstraction } from "@bitwarden/common/key-management/encrypted-migrator/encrypted-migrator.abstraction";
+import { EncryptedMigrator } from "@bitwarden/common/key-management/encrypted-migrator/encrypted-migrator.abstraction";
+import { I18nService } from "@bitwarden/common/platform/abstractions/i18n.service";
 import { UserKeyDefinition, ENCRYPTED_MIGRATION_DISK, StateProvider } from "@bitwarden/common/platform/state";
 import { SyncService } from "@bitwarden/common/platform/sync";
 import { UserId } from "@bitwarden/common/types/guid";
-import { DialogService } from "@bitwarden/components";
+import { DialogService, ToastService } from "@bitwarden/components";
 import { PromptMigrationPasswordComponent } from "@bitwarden/key-management-ui";
 import { LogService } from "@bitwarden/logging";
 
@@ -27,6 +28,11 @@ type UserSyncData = {
   lastSync: Date | null;
 };
 
+/**
+ * This services schedules encrypted migrations for users on clients that are interactive (non-cli), and handles manual interaction,
+ * if it is required by showing a UI prompt. It is only one means of triggering migrations, in case the user stays unlocked for a while,
+ * or regularly logs in without a master-password, when the migrations do require a master-password to run.
+ */
 @Injectable({
   providedIn: "root",
 })
@@ -34,10 +40,12 @@ export class EncryptedMigrationsSchedulerService {
   private syncService = inject(SyncService);
   private accountService = inject(AccountService);
   private stateProvider = inject(StateProvider);
-  private encryptedMigrator = inject(EncryptedMigratorAbstraction);
+  private encryptedMigrator = inject(EncryptedMigrator);
   private authService = inject(AuthService);
   private logService = inject(LogService);
   private dialogService = inject(DialogService);
+  private toastService = inject(ToastService);
+  private i18nService = inject(I18nService);
 
   constructor() {
     // For all accounts, if the auth status changes to unlocked or a sync happens, prompt for migration
@@ -55,10 +63,11 @@ export class EncryptedMigrationsSchedulerService {
               this.authService.authStatusFor$(userId),
               this.syncService.lastSync$(userId)
             ]).pipe(
+              // Prevent double emissions from frequent state changes during login/unlock from showing overlapping prompts
               debounceTime(2000),
               filter(([authStatus]) => authStatus === AuthenticationStatus.Unlocked),
               map(([, lastSync]) => ({ userId, lastSync } as UserSyncData)),
-              tap(({ userId }) => this.promptMigrationIfNeeded(userId))
+              tap(({ userId }) => this.runMigrationsIfNeeded(userId))
             )
           )
         );
@@ -66,16 +75,39 @@ export class EncryptedMigrationsSchedulerService {
     ).subscribe();
   }
 
-  async promptMigrationIfNeeded(userId: UserId): Promise<void> {
+  async runMigrationsIfNeeded(userId: UserId): Promise<void> {
     const authStatus = await firstValueFrom(this.authService.authStatusFor$(userId));
     if (authStatus !== AuthenticationStatus.Unlocked) {
       return;
     }
 
-    if (!await this.encryptedMigrator.needsMigrations(userId)) {
-      return;
+    switch (await this.encryptedMigrator.needsMigrations(userId)) {
+      case "noMigrationNeeded":
+        this.logService.info(`[EncryptedMigrationsScheduler] No migrations needed for user ${userId}`);
+        break;
+      case "needsMigrationWithMasterPassword":
+        this.logService.info(`[EncryptedMigrationsScheduler] User ${userId} needs migrations with master password`);
+        // If the user is unlocked, we can run migrations with the master password
+        await this.runMigrationsWithoutInteraction(userId);
+        break;
+      case "needsMigration":
+        this.logService.info(`[EncryptedMigrationsScheduler] User ${userId} needs migrations with master password`);
+        // If the user is unlocked, we can prompt for the master password
+        await this.runMigrationsWithInteraction(userId);
+        break;
     }
+  }
 
+  private async runMigrationsWithoutInteraction(userId: UserId): Promise<void> {
+    try {
+      await this.encryptedMigrator.runMigrations(userId);
+    } catch (error) {
+      this.logService.error("[EncryptedMigrationsInitiator] Error during migration without interaction", error);
+    }
+  }
+
+  private async runMigrationsWithInteraction(userId: UserId): Promise<void> {
+    // A dialog can be dismissed for a certain amount of time
     const dismissedDate = await firstValueFrom(this.stateProvider.getUser(userId, ENCRYPTED_MIGRATION_DISMISSED).state$);
     if (dismissedDate != null) {
       const now = new Date();
@@ -97,7 +129,13 @@ export class EncryptedMigrationsSchedulerService {
         await this.encryptedMigrator.runMigrations(userId, masterPassword);
       }
     } catch (error) {
-      this.logService.error("Failed to run encrypted migrations:", error);
+      this.logService.error("[EncryptedMigrationsInitiator] Error during migration prompt", error);
+      // If migrations failed when the user actively was prompted, show a toast
+      this.toastService.showToast({
+        variant: "success",
+        title: null,
+        message: this.i18nService.t("migrationsFailed"),
+      })
     }
   }
 }

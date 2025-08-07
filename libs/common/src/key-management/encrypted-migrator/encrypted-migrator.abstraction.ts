@@ -9,6 +9,9 @@ export abstract class EncryptedMigrator {
    * This needs to be run after the decrypted user key has been set to state.
    * @param userId The ID of the user to run migrations for.
    * @param masterPassword The user's current master password. This is mandatory in case @link{needsMigration} returns "needsMigrationWithMasterPassword".
+   * @throws If the user does not exist
+   * @throws If the user is locked or logged out
+   * @throws If migrations are already running
    */
   abstract runMigrations(userId: UserId, masterPassword?: string): Promise<void>;
   /**

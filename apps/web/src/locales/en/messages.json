@@ -4266,6 +4266,9 @@
   "learnMore": {
     "message": "Learn more"
   },
+  "migrationsFailed": {
+    "message": "An error occurred updating the encryption settings."
+  },
   "updateEncryptionSettingsTitle": {
     "message": "Update your encryption settings"
   },
